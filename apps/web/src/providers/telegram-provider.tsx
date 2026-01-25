@@ -1,66 +1,58 @@
 // providers/telegram-provider.tsx
-"use client";
+"use client"
 
-import {
-  init,
-  isTMA,
-  themeParams,
-  useLaunchParams,
-  useSignal,
-} from "@telegram-apps/sdk-react";
-import { useTheme } from "next-themes";
-import { type PropsWithChildren, useEffect, useState } from "react";
-import { ErrorScreen } from "@/components/error-screen";
-import { LoadingBar } from "@/components/loading-bar";
-import { useTelegramTheme } from "@/hooks/use-telegram-theme";
+import { init, isTMA, themeParams, useLaunchParams, useSignal } from "@telegram-apps/sdk-react"
+import { useTheme } from "next-themes"
+import { type PropsWithChildren, useEffect, useState } from "react"
+import { ErrorScreen } from "@/components/error-screen"
+import { LoadingBar } from "@/components/loading-bar"
+import { useTelegramTheme } from "@/hooks/use-telegram-theme"
 
 if (isTMA()) {
-  init();
-  themeParams.mountSync();
+	init()
+	themeParams.mountSync()
 }
 
 function ThemeSync() {
-  useTelegramTheme();
+	useTelegramTheme()
 
-  const isDark = useSignal(themeParams.isDark);
+	const isDark = useSignal(themeParams.isDark)
 
-  const { setTheme } = useTheme();
+	const { setTheme } = useTheme()
 
-  useEffect(() => {
-    setTheme(() => (isDark ? "dark" : "light"));
-  }, [isDark, setTheme]);
+	useEffect(() => {
+		setTheme(() => (isDark ? "dark" : "light"))
+	}, [isDark, setTheme])
 
-  return null;
+	return null
 }
 
 function TmaContent({ children }: PropsWithChildren) {
-  const [status, setStatus] = useState<"loading" | "ready">("loading");
+	const [status, setStatus] = useState<"loading" | "ready">("loading")
 
-  const launchParams = useLaunchParams(true);
+	const launchParams = useLaunchParams(true)
 
-  useEffect(() => {
-    if (launchParams && themeParams.isMounted()) {
-      setStatus("ready");
-    }
-  }, [launchParams]);
+	useEffect(() => {
+		if (launchParams && themeParams.isMounted()) {
+			setStatus("ready")
+		}
+	}, [launchParams])
 
-  if (status === "loading")
-    return (
-      <LoadingBar className="flex min-h-screen items-center justify-center" />
-    );
+	if (status === "loading")
+		return <LoadingBar className="flex min-h-screen items-center justify-center" />
 
-  return (
-    <>
-      <ThemeSync />
-      {children}
-    </>
-  );
+	return (
+		<>
+			<ThemeSync />
+			{children}
+		</>
+	)
 }
 
 export function TelegramProvider({ children }: PropsWithChildren) {
-  if (!isTMA()) {
-    return <ErrorScreen message="Not a telegram environment!" />;
-  }
+	if (!isTMA()) {
+		return <ErrorScreen message="Not a telegram environment!" />
+	}
 
-  return <TmaContent>{children}</TmaContent>;
+	return <TmaContent>{children}</TmaContent>
 }

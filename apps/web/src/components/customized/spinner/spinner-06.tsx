@@ -1,8 +1,8 @@
 const SwirlingEffectSpinner = () => {
-  return (
-    <>
-      <style>
-        {`@keyframes spin {
+	return (
+		<>
+			<style>
+				{`@keyframes spin {
             to {
               transform: rotate(360deg);
             }
@@ -29,26 +29,22 @@ const SwirlingEffectSpinner = () => {
               spin 2s linear infinite;
             animation-direction: alternate;
           }`}
-      </style>
+			</style>
 
-      <svg
-        className="h-14 w-14"
-        viewBox="0 0 800 800"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <circle
-          className="spin2 stroke-primary"
-          cx="400"
-          cy="400"
-          fill="none"
-          r="200"
-          strokeDasharray="700 1400"
-          strokeLinecap="round"
-          strokeWidth="50"
-        />
-      </svg>
-    </>
-  );
-};
+			<svg className="h-14 w-14" viewBox="0 0 800 800" xmlns="http://www.w3.org/2000/svg">
+				<circle
+					className="spin2 stroke-primary"
+					cx="400"
+					cy="400"
+					fill="none"
+					r="200"
+					strokeDasharray="700 1400"
+					strokeLinecap="round"
+					strokeWidth="50"
+				/>
+			</svg>
+		</>
+	)
+}
 
-export default SwirlingEffectSpinner;
+export default SwirlingEffectSpinner

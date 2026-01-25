@@ -1,15 +1,14 @@
 // providers/telegram-wrapper.tsx
-"use client";
+"use client"
 
-import dynamic from "next/dynamic";
-import type { PropsWithChildren } from "react";
+import dynamic from "next/dynamic"
+import type { PropsWithChildren } from "react"
 
 const TelegramProvider = dynamic(
-  () =>
-    import("@/providers/telegram-provider").then((mod) => mod.TelegramProvider),
-  { ssr: false },
-);
+	() => import("@/providers/telegram-provider").then((mod) => mod.TelegramProvider),
+	{ ssr: false }
+)
 
 export function TelegramWrapper({ children }: PropsWithChildren) {
-  return <TelegramProvider>{children}</TelegramProvider>;
+	return <TelegramProvider>{children}</TelegramProvider>
 }
