@@ -15,7 +15,4 @@ app.post("/api/ads", (c) => c.json({ id: "1", title: "Sample Ad" }))
 
 app.get("/api/ads", (c) => c.json({ ads: [] }))
 
-export default {
-	port: 4000,
-	fetch: app.fetch,
-}
+export default app

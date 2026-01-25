@@ -17,5 +17,5 @@ ENV NODE_ENV=production
 COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/packages/shared ./packages/shared
 
-EXPOSE 4000
+EXPOSE 3000
 CMD ["bun", "run", "dist/index.js"]

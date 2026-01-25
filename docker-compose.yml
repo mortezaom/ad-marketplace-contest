@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   web:
     build:
@@ -7,9 +5,9 @@ services:
       dockerfile: Dockerfile.web
     container_name: ad-marketplace-web
     ports:
-      - "3000:3000"
+      - "3333:3333"
     environment:
-      - NEXT_PUBLIC_API_URL=http://api:4000
+      - NEXT_PUBLIC_API_URL=http://api:3000
     depends_on:
       - api
     networks:
@@ -21,7 +19,7 @@ services:
       dockerfile: Dockerfile.api
     container_name: ad-marketplace-api
     ports:
-      - "4000:4000"
+      - "3000:3000"
     environment:
       - NODE_ENV=production
     networks:
