@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: ad-marketplace-web
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:4000
+    depends_on:
+      - api
+    networks:
+      - ad-marketplace
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: ad-marketplace-api
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - ad-marketplace
+
+networks:
+  ad-marketplace:
+    driver: bridge
