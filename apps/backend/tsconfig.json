@@ -9,20 +9,9 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": [
-      "ESNext",
-      "DOM",
-      "DOM.Iterable"
-    ]
+    "lib": ["ESNext", "DOM", "DOM.Iterable"]
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules"
-  ],
-  "typeRoots": [
-    "./src/dash/types",
-    "./node_modules/@types"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"],
+  "typeRoots": ["./src/dash/types", "./node_modules/@types"]
 }

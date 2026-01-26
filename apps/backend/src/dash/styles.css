@@ -14,36 +14,51 @@
 	scrollbar-color: oklch(var(--bc) / 0.3) transparent;
 }
 
+/* 1. Define the custom theme variables */
 [data-theme="new-dim"] {
-	color-scheme: "dark";
-	--color-base-100: oklch(14% 0.005 285.823);
-	--color-base-200: oklch(21% 0.006 285.885);
-	--color-base-300: oklch(27% 0.006 286.033);
-	--color-base-content: oklch(96% 0.001 286.375);
-	--color-primary: oklch(60% 0.126 221.723);
-	--color-primary-content: oklch(26% 0.051 172.552);
-	--color-secondary: oklch(70% 0.022 261.325);
-	--color-secondary-content: oklch(13% 0.028 261.692);
-	--color-accent: oklch(0% 0 0);
-	--color-accent-content: oklch(100% 0 0);
-	--color-neutral: oklch(14% 0.005 285.823);
-	--color-neutral-content: oklch(98% 0 0);
-	--color-info: oklch(54% 0.245 262.881);
-	--color-info-content: oklch(97% 0.014 254.604);
-	--color-success: oklch(64% 0.2 131.684);
-	--color-success-content: oklch(98% 0.031 120.757);
-	--color-warning: oklch(66% 0.179 58.318);
-	--color-warning-content: oklch(98% 0.022 95.277);
-	--color-error: oklch(58% 0.253 17.585);
-	--color-error-content: oklch(96% 0.015 12.422);
-	--radius-selector: 2rem;
+	color-scheme: dark;
+
+	/* Backgrounds & Text (from your shadcn dark export) */
+	--color-base-100: oklch(0.1822 0 0); /* --background */
+	--color-base-200: oklch(0.2046 0 0); /* --card */
+	--color-base-300: oklch(0.2809 0 0); /* --border */
+	--color-base-content: oklch(0.9288 0.0126 255.5078); /* --foreground */
+
+	/* Brand Colors (the teal/mint accent) */
+	--color-primary: oklch(0.4365 0.1044 156.7556);
+	--color-primary-content: oklch(0.9213 0.0135 167.1556);
+
+	/* Secondary & Muted */
+	--color-secondary: oklch(0.2603 0 0);
+	--color-secondary-content: oklch(0.9851 0 0);
+	--color-neutral: oklch(0.2393 0 0); /* --muted */
+	--color-neutral-content: oklch(0.7122 0 0); /* --muted-foreground */
+
+	/* Functional */
+	--color-error: oklch(0.4437 0.1613 26.8994); /* --destructive */
+	--color-error-content: oklch(0.9368 0.0045 34.3092);
+
+	/* Border Radius & UI feel */
+	--radius-box: 0.5rem; /* your --radius */
 	--radius-field: 0.5rem;
-	--radius-box: 1rem;
-	--size-selector: 0.25rem;
-	--size-field: 0.25rem;
-	--border: 1px;
+	--radius-selector: 0.25rem;
+	--border: 1px; /* shadcn uses thinner 1px borders */
+
 	--depth: 1;
 	--noise: 1;
+}
+
+/* 2. Global Styles to match the shadcn "vibe" */
+body {
+	background-color: oklch(0.1822 0 0);
+	color: oklch(0.9288 0.0126 255.5078);
+}
+
+/* Make daisyUI buttons look flatter and more modern like shadcn */
+.btn {
+	text-transform: none;
+	font-weight: 500;
+	letter-spacing: 0.025em;
 }
 
 /* Custom scrollbar for webkit */

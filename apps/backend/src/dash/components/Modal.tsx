@@ -9,7 +9,7 @@ interface Props {
 export function Modal({ id, title, children }: Props) {
 	return (
 		<dialog class="modal" id={id}>
-			<div class="modal-box">
+			<div class="modal-box shadow-sm">
 				<form method="dialog">
 					<button class="btn btn-sm btn-circle btn-ghost absolute top-2 right-2" type="button">
 						✕

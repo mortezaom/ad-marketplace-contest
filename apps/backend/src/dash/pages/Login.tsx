@@ -31,7 +31,7 @@ export function Login({ onSuccess }: { onSuccess: () => void }) {
 		<div class="background-pattern relative flex min-h-screen items-center justify-center">
 			<div class="card w-96 bg-base-200 shadow-xl">
 				<div class="card-body">
-					<h2 class="card-title justify-center text-2xl">Dashboard Login</h2>
+					<h2 class="card-title mb-4 justify-center text-2xl">Dashboard Login</h2>
 
 					{error && (
 						<div class="alert alert-error">

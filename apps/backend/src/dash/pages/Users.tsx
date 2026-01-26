@@ -1,4 +1,3 @@
-/** biome-ignore-all lint/a11y/noLabelWithoutControl: <explanation> */
 import { useState } from "hono/jsx/dom"
 import { closeModal, Modal, openModal } from "../components/Modal"
 

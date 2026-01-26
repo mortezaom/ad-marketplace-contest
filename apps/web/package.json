@@ -3,11 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3333",
+    "dev": "bun --env-file=../../.env next dev --port 3333",
     "build": "next build",
-    "start": "next start",
-    "lint": "biome check",
-    "format": "biome format --write"
+    "start": "next start"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

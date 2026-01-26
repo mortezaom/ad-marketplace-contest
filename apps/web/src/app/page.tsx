@@ -17,9 +17,9 @@ export default function Home() {
 
 	return (
 		<div className="flex min-h-screen items-center justify-center">
-			<main className="flex flex-col gap-4 items-center justify-center">
+			<main className="flex flex-col items-center justify-center gap-4">
 				<h3>Hello {userName}!</h3>
-				<Button variant="outline" onClick={() => setCounter(counter + 1)}>
+				<Button onClick={() => setCounter(counter + 1)} variant="outline">
 					Clicked: {counter}
 				</Button>
 			</main>
