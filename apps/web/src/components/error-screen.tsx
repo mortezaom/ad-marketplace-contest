@@ -11,9 +11,9 @@ export function ErrorScreen({
 }) {
 	return (
 		<div className="flex h-screen w-full items-center justify-center bg-background p-8">
-			<Alert className="flex flex-col gap-8 items-center justify-center w-96 h-64">
+			<Alert className="flex h-64 w-96 flex-col items-center justify-center gap-8">
 				<AlertCircle className="size-14!" />
-				<AlertDescription className="text-lg font-semibold">{message}</AlertDescription>
+				<AlertDescription className="font-semibold text-lg">{message}</AlertDescription>
 			</Alert>
 		</div>
 	)

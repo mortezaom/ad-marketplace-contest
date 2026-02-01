@@ -1,7 +1,15 @@
 // providers/telegram-provider.tsx
 "use client"
 
-import { init, isTMA, themeParams, useLaunchParams, useSignal } from "@telegram-apps/sdk-react"
+import {
+	init,
+	isTMA,
+	mainButton,
+	themeParams,
+	useLaunchParams,
+	useSignal,
+} from "@telegram-apps/sdk-react"
+import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
 import { type PropsWithChildren, useEffect, useState } from "react"
 import { ErrorScreen } from "@/components/error-screen"
@@ -32,14 +40,27 @@ function TmaContent({ children }: PropsWithChildren) {
 
 	const launchParams = useLaunchParams(true)
 
+	const pathname = usePathname()
+
+	useEffect(() => {
+		if (pathname === "/") {
+			mainButton.mount()
+			mainButton.setParams({ isVisible: true })
+		} else {
+			mainButton.setParams({ isVisible: false })
+			mainButton.unmount()
+		}
+	}, [pathname])
+
 	useEffect(() => {
 		if (launchParams && themeParams.isMounted()) {
 			setStatus("ready")
 		}
 	}, [launchParams])
 
-	if (status === "loading")
+	if (status === "loading") {
 		return <LoadingBar className="flex min-h-screen items-center justify-center" />
+	}
 
 	return (
 		<>
