@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Google_Sans } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "next-themes"
+import { Toaster } from "@/components/ui/sonner"
 import { TelegramWrapper } from "@/providers/telegram-wrapper"
 
 const gSans = Google_Sans({ subsets: ["latin"], fallback: ["Inter, sans-serif"] })
@@ -21,6 +22,7 @@ export default function RootLayout({
 			<body className={`${gSans.className} antialiased`}>
 				<ThemeProvider attribute="class" disableTransitionOnChange>
 					<TelegramWrapper>{children}</TelegramWrapper>
+					<Toaster />
 				</ThemeProvider>
 			</body>
 		</html>

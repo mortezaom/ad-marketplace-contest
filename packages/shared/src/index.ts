@@ -1,24 +1,9 @@
-export type User = {
-	id: string
-	telegramId: number
-	username?: string
-	role: "buyer" | "seller" | "admin"
-}
-
-export type Ad = {
-	id: string
-	title: string
-	description: string
-	price: number
-	sellerId: string
-	createdAt: string
-	images: string[]
-	category: string
-}
-
-export type ApiResponse<T> = {
-	success: boolean
-	data?: T
-	error?: string
-	timestamp: string
+export interface UserModel {
+	id: number
+	tid: number | null
+	first_name: string
+	last_name: string | null
+	photo_url: string | null
+	username: string | null
+	created_at: Date
 }
