@@ -1,30 +1,13 @@
-import { useState } from "hono/jsx/dom"
-import { Home } from "./pages/Home"
-import { Login } from "./pages/Login"
-import { Users } from "./pages/Users"
-
-type Page = "login" | "home" | "users"
+import { navigate, usePage } from "./lib/navigator"
+import { AccountsPage } from "./pages/Accounts"
+import { HomePage } from "./pages/Home"
+import { LoginPage } from "./pages/Login"
 
 export function App() {
-	const [page, setPage] = useState<Page>(() => {
-		const path = location.pathname.replace("/dash", "") || "/"
-		if (path === "/login") {
-			return "login"
-		}
-		if (path === "/users") {
-			return "users"
-		}
-		return "home"
-	})
-
-	const navigate = (p: Page) => {
-		const url = p === "home" ? "/dash" : `/dash/${p}`
-		history.pushState({}, "", url)
-		setPage(p)
-	}
+	const page = usePage()
 
 	if (page === "login") {
-		return <Login onSuccess={() => navigate("home")} />
+		return <LoginPage onSuccess={() => navigate("home")} />
 	}
 
 	return (
@@ -46,11 +29,11 @@ export function App() {
 						</li>
 						<li>
 							<button
-								class={page === "users" ? "active" : ""}
-								onClick={() => navigate("users")}
+								class={page === "accounts" ? "active" : ""}
+								onClick={() => navigate("accounts")}
 								type="button"
 							>
-								Users
+								Service Accounts
 							</button>
 						</li>
 						<li>
@@ -63,8 +46,8 @@ export function App() {
 			</div>
 
 			<main class="p-6">
-				{page === "home" && <Home />}
-				{page === "users" && <Users />}
+				{page === "home" && <HomePage />}
+				{page === "accounts" && <AccountsPage />}
 			</main>
 		</div>
 	)

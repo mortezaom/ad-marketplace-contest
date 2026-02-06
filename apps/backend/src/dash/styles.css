@@ -44,8 +44,8 @@
 	--radius-selector: 0.25rem;
 	--border: 1px; /* shadcn uses thinner 1px borders */
 
-	--depth: 1;
-	--noise: 1;
+	--depth: 0;
+	--noise: 0;
 }
 
 /* 2. Global Styles to match the shadcn "vibe" */

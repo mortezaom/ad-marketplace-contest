@@ -1,7 +1,7 @@
 import { useState } from "hono/jsx/dom"
 import { toast } from "../lib/toast"
 
-export function Login({ onSuccess }: { onSuccess: () => void }) {
+export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
 	const [user, setUser] = useState("")
 	const [pass, setPass] = useState("")
 	const [error, setError] = useState("")

@@ -36,6 +36,34 @@
       "when": 1769976940519,
       "tag": "0004_public_clea",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1770318280828,
+      "tag": "0005_youthful_ultimo",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1770344038153,
+      "tag": "0006_yielding_baron_zemo",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1770346170529,
+      "tag": "0007_lame_deathbird",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1770348345634,
+      "tag": "0008_fine_lockjaw",
+      "breakpoints": true
     }
   ]
 }

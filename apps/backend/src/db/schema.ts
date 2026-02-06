@@ -1,4 +1,15 @@
-import { bigint, integer, pgTable, timestamp, varchar } from "drizzle-orm/pg-core"
+import {
+	bigint,
+	boolean,
+	integer,
+	jsonb,
+	pgEnum,
+	pgTable,
+	text,
+	timestamp,
+	uuid,
+	varchar,
+} from "drizzle-orm/pg-core"
 
 export const usersTable = pgTable("users", {
 	id: integer().primaryKey().generatedAlwaysAsIdentity(),
@@ -11,5 +22,49 @@ export const usersTable = pgTable("users", {
 	updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
-export type InsertUser = typeof usersTable.$inferInsert
-export type SelectUser = typeof usersTable.$inferSelect
+export const tgSessionType = pgEnum("tg_session_type", ["stats_agent"])
+export const tgSessionStatus = pgEnum("tg_session_status", ["active", "disabled"])
+
+export const tgLoginMode = pgEnum("tg_login_mode", ["phone", "qr"])
+export const tgLoginStatus = pgEnum("tg_login_status", [
+	"waiting_code",
+	"waiting_password",
+	"done",
+	"expired",
+	"canceled",
+])
+export const tgLoginFlows = pgTable("tg_login_flows", {
+	id: uuid("id").primaryKey().defaultRandom(),
+	mode: tgLoginMode("mode").notNull(),
+	status: tgLoginStatus("status").notNull(),
+
+	storageKey: text("storage_key").notNull().unique(),
+
+	phone: text("phone"),
+	phoneCodeHash: text("phone_code_hash"),
+	state: jsonb("state").notNull().default({}),
+
+	expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const tgSessions = pgTable("tg_sessions", {
+	id: uuid("id").primaryKey().defaultRandom(),
+	type: tgSessionType("type").notNull(),
+	status: tgSessionStatus("status").notNull().default("active"),
+	label: text("label"),
+
+	// This points to the file path
+	storageKey: text("storage_key").notNull().unique(),
+
+	tgUserId: text("tg_user_id").notNull(),
+	tgUsername: text("tg_username"),
+	tgFirstName: text("tg_first_name").notNull(),
+	tgLastName: text("tg_last_name"),
+	isPremium: boolean("is_premium").notNull().default(false),
+	lastFloodUntil: timestamp("last_flood_until", { withTimezone: true }),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export type AccountType = typeof tgSessions.$inferSelect
