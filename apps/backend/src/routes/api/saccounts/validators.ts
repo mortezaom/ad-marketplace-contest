@@ -20,11 +20,6 @@ export const SubmitPasswordBody = z.object({
 })
 export type SubmitPasswordBody = z.infer<typeof SubmitPasswordBody>
 
-export const FinalizeBody = z.object({
-	label: z.string().trim().min(1).max(64).optional(),
-})
-export type FinalizeBody = z.infer<typeof FinalizeBody>
-
 export const MeDto = z.object({
 	id: z.number(),
 	firstName: z.string(),
@@ -56,8 +51,3 @@ export const SubmitPasswordResponse = z.object({
 	me: MeDto,
 })
 export type SubmitPasswordResponse = z.infer<typeof SubmitPasswordResponse>
-
-export const FinalizeResponse = z.object({
-	sessionId: z.uuid(),
-})
-export type FinalizeResponse = z.infer<typeof FinalizeResponse>

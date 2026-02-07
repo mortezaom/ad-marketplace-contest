@@ -2,7 +2,6 @@ import {
 	bigint,
 	boolean,
 	integer,
-	jsonb,
 	pgEnum,
 	pgTable,
 	text,
@@ -42,7 +41,6 @@ export const tgLoginFlows = pgTable("tg_login_flows", {
 
 	phone: text("phone"),
 	phoneCodeHash: text("phone_code_hash"),
-	state: jsonb("state").notNull().default({}),
 
 	expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -55,7 +53,6 @@ export const tgSessions = pgTable("tg_sessions", {
 	status: tgSessionStatus("status").notNull().default("active"),
 	label: text("label"),
 
-	// This points to the file path
 	storageKey: text("storage_key").notNull().unique(),
 
 	tgUserId: text("tg_user_id").notNull(),
@@ -68,3 +65,37 @@ export const tgSessions = pgTable("tg_sessions", {
 })
 
 export type AccountType = typeof tgSessions.$inferSelect
+
+export const channelsTable = pgTable("channels", {
+	id: integer().primaryKey().generatedAlwaysAsIdentity(),
+	tgId: bigint("tg_id", {
+		mode: "bigint",
+	}).notNull(),
+	accessHash: text("access_hash").notNull(),
+	title: text("title"),
+	ownerId: bigint("owner_id", {
+		mode: "number",
+	}),
+	tgLink: text("tg_link").notNull(),
+	subCount: integer("sub_count").default(0),
+	avgPostReach: integer("avg_post_reach").default(0),
+	languages: text("languages"),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+export const adminRoleEnum = pgEnum("admin_role", ["owner", "admin"])
+export const adminSourceEnum = pgEnum("admin_source", ["telegram", "invite"])
+
+export const channelAdminsTable = pgTable("channel_admins", {
+	id: integer().primaryKey().generatedAlwaysAsIdentity(),
+	channelId: integer("channel_id")
+		.notNull()
+		.references(() => channelsTable.id, { onDelete: "cascade" }),
+	tgUserId: bigint("tg_user_id", {
+		mode: "number",
+	}).notNull(),
+	role: adminRoleEnum("role").notNull().default("owner"),
+	addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
+	source: adminSourceEnum("source").notNull().default("telegram"),
+})

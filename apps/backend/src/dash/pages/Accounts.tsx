@@ -57,9 +57,7 @@ export function AccountsPage() {
 									{account.tgFirstName} {account.tgLastName}
 								</td>
 								<td>
-									<span
-										class={`badge badge-${account.status === "active" ? "success" : "error"}`}
-									>
+									<span class={`badge badge-${account.status === "active" ? "success" : "error"}`}>
 										{account.status}
 									</span>
 								</td>

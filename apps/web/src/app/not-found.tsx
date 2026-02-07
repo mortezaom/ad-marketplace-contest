@@ -8,8 +8,8 @@ export default function ErrorPage() {
 
 	return (
 		<div className="flex min-h-screen items-center justify-center">
-        	<main className="flex flex-col items-center justify-center gap-4">
-                <h3>404 | Page Not Found</h3>
+			<main className="flex flex-col items-center justify-center gap-4">
+				<h3>404 | Page Not Found</h3>
 
 				<Button onClick={() => router.push("/")} variant="default">
 					Go Home

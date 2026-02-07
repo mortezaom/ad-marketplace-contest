@@ -1,9 +1,10 @@
 import { eq } from "drizzle-orm"
 import type { Context } from "hono"
 import { errorResponse, successResponse } from "@/utils/responses"
+import { makeClient } from "@/utils/tg-helpers"
 import { db } from "../../../db"
 import { tgLoginFlows, tgSessions } from "../../../db/schema"
-import { isPasswordNeededError, makeClient, makeStorageKeyForFlow, meDto, toIso } from "./helpers"
+import { isPasswordNeededError, makeStorageKeyForFlow, meDto, toIso } from "./helpers"
 import { FlowIdParam, StartFlowBody, SubmitCodeBody, SubmitPasswordBody } from "./validators"
 
 const getFlowById = async (flowId: string) => {
@@ -43,7 +44,6 @@ export const handleStartFlow = async (c: Context) => {
 			phone: body.phone,
 			phoneCodeHash: sent.phoneCodeHash,
 			expiresAt,
-			state: {},
 		})
 	} else {
 		return c.json(errorResponse("cannot use this phone right now"))

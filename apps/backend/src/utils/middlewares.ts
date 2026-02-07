@@ -3,7 +3,7 @@ import { getCookie } from "hono/cookie"
 import { TOKEN_COOKIE, verifyToken } from "./jwt"
 import { errorResponse } from "./responses"
 
-export const handleAuth = async (c: Context, next: () => Promise<void>) => {
+export const handleAuth = (c: Context, next: () => Promise<void>) => {
 	const authToken = getCookie(c, TOKEN_COOKIE)
 	if (authToken) {
 		const user = verifyToken(authToken)
@@ -11,5 +11,13 @@ export const handleAuth = async (c: Context, next: () => Promise<void>) => {
 	} else {
 		return c.json(errorResponse("Unauthorized!"), 401)
 	}
-	await next()
+	return next()
+}
+
+export const handleDashAuth = (c: Context, next: () => Promise<void>) => {
+	const token = getCookie(c, "dash_auth")
+	if (token === "authenticated") {
+		return next()
+	}
+	return c.json(errorResponse("Unauthorized!"), 401)
 }

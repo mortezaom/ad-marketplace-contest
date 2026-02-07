@@ -1,6 +1,6 @@
 export interface UserModel {
 	id: number
-	tid: number | null
+	tid: number
 	first_name: string
 	last_name: string | null
 	photo_url: string | null

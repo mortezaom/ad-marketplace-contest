@@ -82,9 +82,7 @@
         "tg_login_flows_storage_key_unique": {
           "name": "tg_login_flows_storage_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "storage_key"
-          ]
+          "columns": ["storage_key"]
         }
       },
       "policies": {},
@@ -181,9 +179,7 @@
         "tg_sessions_storage_key_unique": {
           "name": "tg_sessions_storage_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "storage_key"
-          ]
+          "columns": ["storage_key"]
         }
       },
       "policies": {},
@@ -265,9 +261,7 @@
         "users_tid_unique": {
           "name": "users_tid_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tid"
-          ]
+          "columns": ["tid"]
         }
       },
       "policies": {},
@@ -279,10 +273,7 @@
     "public.tg_login_mode": {
       "name": "tg_login_mode",
       "schema": "public",
-      "values": [
-        "phone",
-        "qr"
-      ]
+      "values": ["phone", "qr"]
     },
     "public.tg_login_status": {
       "name": "tg_login_status",
@@ -298,17 +289,12 @@
     "public.tg_session_status": {
       "name": "tg_session_status",
       "schema": "public",
-      "values": [
-        "active",
-        "disabled"
-      ]
+      "values": ["active", "disabled"]
     },
     "public.tg_session_type": {
       "name": "tg_session_type",
       "schema": "public",
-      "values": [
-        "stats_agent"
-      ]
+      "values": ["stats_agent"]
     }
   },
   "schemas": {},
