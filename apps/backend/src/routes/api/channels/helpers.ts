@@ -1,9 +1,11 @@
 import type { Long, TelegramClient } from "@mtcute/bun"
 import type { tl } from "@mtcute/tl"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import type { UserModel } from "shared"
+import { mainBot } from "@/bot"
 import { db } from "@/db"
 import { channelAdminsTable, channelsTable, tgSessions } from "@/db/schema"
+import { decodePhotoToken, encodePhotoToken } from "@/utils/helpers"
 import { makeClient, withDelay } from "@/utils/tg-helpers"
 
 interface LanguageStats {
@@ -30,7 +32,8 @@ const getChannelInfo = async (
 	tg: TelegramClient,
 	channelId: number,
 	accessHash: Long
-): Promise<{ title: string | null; channelDc: number | null }> => {
+): Promise<{ title: string | null; photo: string | null; channelDc: number | null }> => {
+	// 1. Get Full Channel (for stats DC)
 	const fullChannel = await withDelay(() =>
 		tg.call({
 			_: "channels.getFullChannel",
@@ -42,17 +45,29 @@ const getChannelInfo = async (
 		})
 	)
 
+	// 2. Get Chat Info (High-level object)
+	const chat = await withDelay(() => tg.getChat(channelId))
+
+	let photoToken: string | null = null
+
+	// Check if photo exists
+	if (chat.photo) {
+		const fileId = chat.photo.big.fileId
+
+		if (fileId) {
+			photoToken = encodePhotoToken(fileId)
+		}
+	}
+
 	if (fullChannel.fullChat._ === "channelFull") {
 		return {
-			title: fullChannel.fullChat.about,
+			title: chat.title,
+			photo: photoToken,
 			channelDc: fullChannel.fullChat.statsDc ?? null,
 		}
 	}
 
-	return {
-		title: null,
-		channelDc: null,
-	}
+	return { title: null, photo: null, channelDc: null }
 }
 
 const fetchBroadcastStats = (
@@ -218,6 +233,74 @@ export const verifyChannelAdmin = async (
 	}
 }
 
+export const syncNewAdminByOwner = async (adminId: string, channelInput: string) => {
+	const account = await db
+		.select()
+		.from(tgSessions)
+		.where(eq(tgSessions.status, "active"))
+		.limit(1)
+		.execute()
+		.then((rows) => (rows.length > 0 ? rows[0] : null))
+
+	if (!account) {
+		throw new Error("Not a valid account!")
+	}
+
+	const tg = makeClient(account.storageKey)
+	await tg.connect()
+
+	const username = channelInput.replace("@", "").split("/").pop() ?? ""
+
+	try {
+		const chat = await withDelay(() => tg.resolvePeer(`@${username}`))
+		const currentUser = await withDelay(() => tg.resolvePeer(`@${adminId}`))
+
+		const getUserData = await mainBot.getUser(currentUser)
+
+		if (chat._ !== "inputPeerChannel") {
+			throw new Error("This is not a channel")
+		}
+
+		const participant = await withDelay(() =>
+			tg.call({
+				_: "channels.getParticipant",
+				channel: {
+					_: "inputChannel",
+					channelId: chat.channelId,
+					accessHash: chat.accessHash,
+				},
+				participant: currentUser,
+			})
+		)
+
+		const isAdmin =
+			participant.participant._ === "channelParticipantAdmin" ||
+			participant.participant._ === "channelParticipantCreator"
+
+		if (!isAdmin) {
+			throw new Error("This account is not an admin in this channel!")
+		}
+
+		const data = await db
+			.insert(channelAdminsTable)
+			.values({
+				channelId: chat.channelId,
+				tgUserId: getUserData.id,
+				role: "admin",
+				source: "invite",
+			})
+			.onConflictDoNothing()
+			.returning()
+
+		return data.length ? data[0] : null
+	} catch (err) {
+		console.error(err)
+		throw err
+	} finally {
+		await tg.disconnect()
+	}
+}
+
 export const syncChannelAdmin = async (
 	channelStatsResult: ChannelStatsResult,
 	tgUserId: number
@@ -231,6 +314,19 @@ export const syncChannelAdmin = async (
 
 	if (!channel) {
 		throw new Error("Channel not found in database")
+	}
+
+	const existingAdmin = await db
+		.select({ id: channelAdminsTable.id })
+		.from(channelAdminsTable)
+		.where(
+			and(eq(channelAdminsTable.channelId, channel.id), eq(channelAdminsTable.tgUserId, tgUserId))
+		)
+		.execute()
+		.then((rows) => (rows.length > 0 ? rows[0] : null))
+
+	if (existingAdmin) {
+		return
 	}
 
 	await db
@@ -264,5 +360,36 @@ export const getChannelsByUser = async (tgUserId: number): Promise<ChannelStatsR
 		subCount: channel.subCount ?? 0,
 		avgPostReach: channel.avgPostReach ?? 0,
 		languages: channel.languages ? JSON.parse(channel.languages) : [],
+	}))
+}
+
+export const getChannelPhotoByToken = async (
+	tg: TelegramClient,
+	token: string
+): Promise<Uint8Array> => {
+	const fileId = decodePhotoToken(token)
+
+	const buffer = await tg.downloadAsBuffer(fileId)
+
+	if (!buffer) {
+		throw new Error("Failed to download photo")
+	}
+
+	return buffer
+}
+
+export const getWeeklyPostStats = (_: number): { day: string; posts: number }[] => {
+	// Placeholder implementation - returns mock data
+	const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+	const today = new Date().getDay()
+
+	const orderedDays = [
+		...days.slice(today === 0 ? 6 : today - 1),
+		...days.slice(0, today === 0 ? 6 : today - 1),
+	]
+
+	return orderedDays.map((day, index) => ({
+		day,
+		posts: Math.floor(Math.random() * 10) + (6 - index),
 	}))
 }

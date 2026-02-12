@@ -70,7 +70,9 @@ export const channelsTable = pgTable("channels", {
 	id: integer().primaryKey().generatedAlwaysAsIdentity(),
 	tgId: bigint("tg_id", {
 		mode: "bigint",
-	}).notNull(),
+	})
+		.notNull()
+		.unique(),
 	accessHash: text("access_hash").notNull(),
 	title: text("title"),
 	ownerId: bigint("owner_id", {

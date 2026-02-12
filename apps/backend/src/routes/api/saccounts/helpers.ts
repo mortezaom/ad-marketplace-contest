@@ -12,6 +12,8 @@ export const toIso = (d: Date) => d.toISOString()
 
 export const makeStorageKeyForFlow = (flowId: string) => `storage/stats-agent-flow:${flowId}`
 
+export const mainBotStorageKey = "storage/main-bot-session"
+
 export const meDto = (me: User) => ({
 	id: me.id as number,
 	firstName: String(me.firstName ?? ""),

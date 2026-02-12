@@ -31,7 +31,7 @@ function isApiShape(v: unknown): v is { status: "success" | "error" } {
 
 const http = ky.create({
 	credentials: "include",
-	timeout: 20_000,
+	timeout: 200_000,
 	retry: { limit: 1 },
 	hooks: {
 		beforeRequest: [

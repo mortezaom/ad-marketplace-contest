@@ -102,16 +102,17 @@ export const handleSubmitCode = async (c: Context) => {
 
 	const me = await tg.getMe()
 
-	try {
-		await tg.call({
-			_: "account.updateProfile",
-			firstName: "MiniAd",
-			lastName: "Stats",
-			about: "Official MiniAd Agent",
-		})
-	} catch (e) {
-		console.error("Failed to update profile", e)
-	}
+	// TODO: change account details if needed
+	// try {
+	// 	await tg.call({
+	// 		_: "account.updateProfile",
+	// 		firstName: "MiniAd",
+	// 		lastName: "Stats",
+	// 		about: "Official MiniAd Agent",
+	// 	})
+	// } catch (e) {
+	// 	console.error("Failed to update profile", e)
+	// }
 
 	await tg.disconnect()
 

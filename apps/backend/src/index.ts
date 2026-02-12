@@ -1,6 +1,7 @@
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
+import { startMainBot } from "./bot"
 import { parseENV } from "./config/env"
 import api from "./routes/api"
 import dash from "./routes/dash"
@@ -8,6 +9,10 @@ import dash from "./routes/dash"
 parseENV()
 
 const allowedOrigins = new Set(["http://wsl.localhost:3333", "http://localhost:3333"])
+
+startMainBot().catch((err) => {
+	console.error("Failed to start bot:", err)
+})
 
 const app = new Hono()
 

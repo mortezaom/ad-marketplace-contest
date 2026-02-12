@@ -78,6 +78,20 @@
       "when": 1770504834092,
       "tag": "0010_lazy_mach_iv",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1770516660796,
+      "tag": "0011_striped_vector",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1770619493216,
+      "tag": "0012_colossal_kulan_gath",
+      "breakpoints": true
     }
   ]
 }

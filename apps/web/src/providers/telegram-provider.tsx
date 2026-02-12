@@ -9,7 +9,7 @@ import {
 	useRawInitData,
 	useSignal,
 } from "@telegram-apps/sdk-react"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { type PropsWithChildren, useEffect, useState } from "react"
 import type { UserModel } from "shared"
@@ -19,6 +19,7 @@ import { LoadingBar } from "@/components/loading-bar"
 import { useTelegramTheme } from "@/hooks/use-telegram-theme"
 import { request } from "@/lib/http"
 import { authStorage } from "@/lib/storage"
+import { hideBackButton, setBackButton } from "@/lib/tma"
 
 if (isTMA()) {
 	init()
@@ -40,7 +41,7 @@ function ThemeSync() {
 }
 
 async function submitInitData(launchParams: string | undefined) {
-	const response = await request<{ user: UserModel }>("users", {
+	const response = await request<{ user: UserModel; accessToken: string }>("users", {
 		method: "POST",
 		body: JSON.stringify({
 			initData: launchParams ?? "",
@@ -53,6 +54,7 @@ async function submitInitData(launchParams: string | undefined) {
 	}
 
 	authStorage.setUser(response.data.user)
+	authStorage.setToken(response.data.accessToken)
 }
 
 function TmaContent({ children }: PropsWithChildren) {
@@ -62,12 +64,20 @@ function TmaContent({ children }: PropsWithChildren) {
 
 	const pathname = usePathname()
 
+	const router = useRouter()
+
 	useEffect(() => {
 		if (pathname === "/") {
 			mainButton.mount()
-			mainButton.setParams({ isVisible: true })
+			hideBackButton()
 		} else {
-			mainButton.setParams({ isVisible: false })
+			setBackButton(() => router.back())
+		}
+
+		if (mainButton.isMounted() && pathname !== "/") {
+			mainButton.setParams({
+				isVisible: false,
+			})
 			mainButton.unmount()
 		}
 	}, [pathname])

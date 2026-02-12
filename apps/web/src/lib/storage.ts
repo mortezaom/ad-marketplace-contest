@@ -32,6 +32,20 @@ export const authStorage = {
 		window.localStorage.setItem(USER_KEY, JSON.stringify(user))
 	},
 
+	setToken(token: string): void {
+		if (typeof window === "undefined") {
+			return
+		}
+		window.localStorage.setItem(TOKEN_KEY, token)
+	},
+
+	getToken(): string | null {
+		if (typeof window === "undefined") {
+			return null
+		}
+		return window.localStorage.getItem(TOKEN_KEY)
+	},
+
 	clearUser(): void {
 		if (typeof window === "undefined") {
 			return

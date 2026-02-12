@@ -1,12 +1,12 @@
 import type { Context } from "hono"
 import { getCookie } from "hono/cookie"
-import { TOKEN_COOKIE, verifyToken } from "./jwt"
+import { verifyToken } from "./jwt"
 import { errorResponse } from "./responses"
 
-export const handleAuth = (c: Context, next: () => Promise<void>) => {
-	const authToken = getCookie(c, TOKEN_COOKIE)
+export const handleAuth = async (c: Context, next: () => Promise<void>) => {
+	const authToken = c.req.header("Authorization")
 	if (authToken) {
-		const user = verifyToken(authToken)
+		const user = await verifyToken(authToken)
 		c.set("user", user)
 	} else {
 		return c.json(errorResponse("Unauthorized!"), 401)

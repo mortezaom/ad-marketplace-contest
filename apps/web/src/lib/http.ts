@@ -1,4 +1,5 @@
 import ky, { HTTPError } from "ky"
+import { authStorage } from "./storage"
 
 type ApiExtra = Record<string, unknown>
 
@@ -32,12 +33,17 @@ function isApiShape(v: unknown): v is { status: "success" | "error" } {
 const http = ky.create({
 	prefixUrl: process.env.NEXT_PUBLIC_API_URL,
 	credentials: "include",
-	timeout: 20_000,
+	timeout: 200_000,
 	retry: { limit: 1 },
 	hooks: {
 		beforeRequest: [
 			(req) => {
 				req.headers.set("Accept", "application/json")
+				req.headers.set("Content-Type", "application/json")
+				const token = authStorage.getToken()
+				if (token) {
+					req.headers.set("Authorization", `Bearer ${token}`)
+				}
 			},
 		],
 	},
@@ -117,4 +123,9 @@ export async function request<D, E extends ApiExtra = ApiExtra>(
 			message: "Network error",
 		} as ApiResult<D, E>
 	}
+}
+
+export const getChannelPhoto = (tgLink: string) => {
+	console.log(`${process.env.NEXT_PUBLIC_API_URL}channels/channel-photo/${tgLink.split("/").pop()}`)
+	return `${process.env.NEXT_PUBLIC_API_URL}channels/channel-photo/${tgLink.split("/").pop()}`
 }

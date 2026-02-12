@@ -1,6 +1,6 @@
-import { neon } from "@neondatabase/serverless"
-import { drizzle } from "drizzle-orm/neon-http"
+import { drizzle } from "drizzle-orm/postgres-js"
+import postgres from "postgres"
 
-const sql = neon(Bun.env.DATABASE_URL)
+const queryClient = postgres(Bun.env.DATABASE_URL)
 
-export const db = drizzle({ client: sql })
+export const db = drizzle({ client: queryClient })

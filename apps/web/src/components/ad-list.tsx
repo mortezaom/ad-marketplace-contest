@@ -1,22 +1,15 @@
 "use client"
 
-import { mainButton } from "@telegram-apps/sdk-react"
 import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { setMainButton } from "@/lib/tma"
 import { H4, P } from "./customized/typography"
 
 export function AdList() {
 	const router = useRouter()
 	// biome-ignore lint/correctness/useExhaustiveDependencies: ignored
 	useEffect(() => {
-		if (mainButton.isMounted()) {
-			mainButton.setParams({
-				text: "Create Advertisement",
-				isVisible: true,
-				isEnabled: true,
-			})
-			mainButton.onClick(() => router.push("/advertisement/new"))
-		}
+		setMainButton("ads", () => router.push("/advertisement/new"))
 	}, [])
 
 	return (

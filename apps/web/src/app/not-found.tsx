@@ -11,7 +11,7 @@ export default function ErrorPage() {
 			<main className="flex flex-col items-center justify-center gap-4">
 				<h3>404 | Page Not Found</h3>
 
-				<Button onClick={() => router.push("/")} variant="default">
+				<Button onClick={() => router.replace("/")} variant="default">
 					Go Home
 				</Button>
 			</main>

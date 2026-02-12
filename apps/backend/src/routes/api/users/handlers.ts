@@ -1,11 +1,10 @@
 import { parse, validate } from "@tma.js/init-data-node"
 import { eq } from "drizzle-orm"
 import type { Context } from "hono"
-import { setCookie } from "hono/cookie"
 import type { UserModel } from "shared"
 import { db } from "@/db"
 import { usersTable } from "@/db/schema"
-import { generateToken, TOKEN_COOKIE } from "@/utils/jwt"
+import { generateToken } from "@/utils/jwt"
 import { errorResponse, successResponse } from "@/utils/responses"
 import { AuthBodySchema } from "./validators"
 
@@ -57,11 +56,10 @@ export const handleUserAuth = async (c: Context) => {
 
 		const accessToken = await generateToken(savedUser[0])
 
-		setCookie(c, TOKEN_COOKIE, accessToken)
-
 		return c.json(
 			successResponse({
 				user: savedUser[0],
+				accessToken,
 			})
 		)
 	} catch (err) {

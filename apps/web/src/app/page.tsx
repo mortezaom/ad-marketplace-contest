@@ -3,17 +3,24 @@
 import { DotLottieReact } from "@lottiefiles/dotlottie-react"
 import { useLaunchParams } from "@telegram-apps/sdk-react"
 import { ChevronDown } from "lucide-react"
-import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { AdList } from "@/components/ad-list"
 import { ChannelsList } from "@/components/channels-list"
 import { H4 } from "@/components/customized/typography"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { setMainButton } from "@/lib/tma"
 import { cn } from "@/lib/utils"
 
 export default function HomePage() {
 	const userData = useLaunchParams().tgWebAppData?.user
+	const router = useRouter()
+
+	useEffect(() => {
+		setMainButton("ads", () => router.push("/advertisement/new"))
+	}, [])
 
 	const [infoOpen, setInfoOpen] = useState(true)
 
