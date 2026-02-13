@@ -13,7 +13,12 @@ import {
 	syncNewAdminByOwner,
 	verifyChannelAdmin,
 } from "./helpers"
-import { AddAdminToChannelParam, SubmitChannelParam, VerifyChannelParam } from "./validators"
+import {
+	AddAdminToChannelParam,
+	SetListingInfoParam,
+	SubmitChannelParam,
+	VerifyChannelParam,
+} from "./validators"
 
 export const hangleAgentForChannel = async (c: Context) => {
 	const body = SubmitChannelParam.parse(await parseBody(c))
@@ -181,6 +186,14 @@ export const handleGetChannelById = async (c: Context) => {
 				languages: channel.languages ? JSON.parse(channel.languages) : [],
 				offersCount: 0,
 				adsPublished: 0,
+				listingInfo: channel.listingInfo
+					? JSON.parse(channel.listingInfo)
+					: {
+							postPrice: 0,
+							storyPrice: 0,
+							forwardPrice: 0,
+							isPublic: false,
+						},
 			},
 			weeklyStats,
 		}
@@ -282,7 +295,7 @@ export const handleAddAdmin = async (c: Context) => {
 			return c.json(errorResponse("Access denied"), 403)
 		}
 
-		const data = await syncNewAdminByOwner(body.data.newAdminUsername, channel.tgLink)
+		const data = await syncNewAdminByOwner(body.data.newAdminUsername, channel.tgLink, channel.id)
 
 		if (!data) {
 			return c.json(errorResponse("Admin already exists"), 403)
@@ -361,5 +374,49 @@ export const handleDemoteAdmin = async (c: Context) => {
 	} catch (error) {
 		console.error("Error demoting admin:", error)
 		return c.json(errorResponse("Failed to demote admin"), 500)
+	}
+}
+
+export const handleListingSetting = async (c: Context) => {
+	const tgId = c.req.param("id")
+	const user = c.get("user") as UserModel
+	const body = SetListingInfoParam.safeParse(await parseBody(c))
+	if (body.error) {
+		return c.json(errorResponse(body.error.message), 422)
+	}
+	try {
+		const channel = await db
+			.select({ id: channelsTable.id })
+			.from(channelsTable)
+			.where(eq(channelsTable.tgId, BigInt(tgId)))
+			.limit(1)
+			.then((rows) => (rows.length > 0 ? rows[0] : null))
+
+		if (!channel) {
+			return c.json(errorResponse("Channel not found"), 404)
+		}
+
+		const requesterAdmin = await db
+			.select()
+			.from(channelAdminsTable)
+			.where(
+				and(eq(channelAdminsTable.channelId, channel.id), eq(channelAdminsTable.tgUserId, user.tid))
+			)
+			.limit(1)
+			.then((rows) => (rows.length > 0 ? rows[0] : null))
+
+		if (!requesterAdmin) {
+			return c.json(errorResponse("No access to this channel!"), 403)
+		}
+
+		await db
+			.update(channelsTable)
+			.set({ listingInfo: JSON.stringify(body.data), updatedAt: new Date() })
+			.where(eq(channelsTable.id, channel.id))
+
+		return c.json(successResponse({ message: "Updated Successfully!" }))
+	} catch (error) {
+		console.error(error)
+		return c.json(errorResponse("Failed to update listing info", error), 500)
 	}
 }

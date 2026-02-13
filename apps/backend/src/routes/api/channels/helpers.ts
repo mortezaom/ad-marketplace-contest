@@ -233,7 +233,11 @@ export const verifyChannelAdmin = async (
 	}
 }
 
-export const syncNewAdminByOwner = async (adminId: string, channelInput: string) => {
+export const syncNewAdminByOwner = async (
+	adminId: string,
+	channelInput: string,
+	channelId: number
+) => {
 	const account = await db
 		.select()
 		.from(tgSessions)
@@ -284,7 +288,7 @@ export const syncNewAdminByOwner = async (adminId: string, channelInput: string)
 		const data = await db
 			.insert(channelAdminsTable)
 			.values({
-				channelId: chat.channelId,
+				channelId,
 				tgUserId: getUserData.id,
 				role: "admin",
 				source: "invite",

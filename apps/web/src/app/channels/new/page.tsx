@@ -151,8 +151,8 @@ export default function NewAdPage() {
 								</div>
 							</div>
 						</div>
-						<Button onClick={() => router.replace("/")} variant="default">
-							Back to Home
+						<Button onClick={() => router.replace(`/channels/${channelData?.tgId}`)} variant="default">
+							Go to Channel Details
 						</Button>
 					</motion.div>
 				) : (

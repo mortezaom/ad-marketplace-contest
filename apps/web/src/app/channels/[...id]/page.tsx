@@ -1,10 +1,14 @@
 "use client"
 
 import { useLaunchParams } from "@telegram-apps/sdk-react"
-import { BarChart3, ExternalLink, MoreVertical, Users } from "lucide-react"
+import { ExternalLink, MoreVertical } from "lucide-react"
 import { use, useEffect, useState } from "react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import type { ChannelModel } from "shared"
+import { AddAdminSheet } from "@/components/add-admin-sheet"
 import { AdminCard, AdminCardSkeleton, type ChannelAdmin } from "@/components/channel-admin-card"
+import { ChannelListingContent, type ListingBodyType } from "@/components/channel-listing-content"
+import { StatCard } from "@/components/channel-stat-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -17,8 +21,10 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getChannelPhoto, request } from "@/lib/http"
+import { formatNumber } from "@/lib/utils"
 
 const chartConfig = {
 	posts: {
@@ -34,17 +40,6 @@ export interface WeeklyStat {
 
 export interface ChannelPageProps {
 	params: Promise<{ id: string }>
-}
-
-export interface ChannelModel {
-	title: string | null
-	tgId: string
-	tgLink: string
-	subCount: number
-	avgPostReach?: number
-	languages: LanguageStats[]
-	offersCount?: number
-	adsPublished?: number
 }
 
 export interface LanguageStats {
@@ -100,6 +95,14 @@ export default function ChannelPage({ params }: { params: Promise<{ id: string }
 		}
 
 		setAdminsLoading(false)
+	}
+
+	const onListingChanged = (body: ListingBodyType) => {
+		if (!channel) { return }
+		setChannel({
+			...channel,
+			listingInfo: body,
+		})
 	}
 
 	const handleDemoteAdmin = async (adminId: number) => {
@@ -217,15 +220,10 @@ export default function ChannelPage({ params }: { params: Promise<{ id: string }
 			</div>
 
 			<Tabs defaultValue="info" onValueChange={handleTabChange}>
-				<TabsList className="mb-6 grid w-full grid-cols-2">
-					<TabsTrigger value="info">
-						<BarChart3 className="mr-2 h-4 w-4" />
-						Info & Stats
-					</TabsTrigger>
-					<TabsTrigger value="admins">
-						<Users className="mr-2 h-4 w-4" />
-						Admins
-					</TabsTrigger>
+				<TabsList className="mb-6 grid w-full grid-cols-3">
+					<TabsTrigger value="info">Info & Stats</TabsTrigger>
+					<TabsTrigger value="listing">Listing</TabsTrigger>
+					<TabsTrigger value="admins">Admins</TabsTrigger>
 				</TabsList>
 
 				<TabsContent className="space-y-6" value="info">
@@ -284,16 +282,15 @@ export default function ChannelPage({ params }: { params: Promise<{ id: string }
 					)}
 				</TabsContent>
 
+				<TabsContent className="space-y-6" value="listing">
+					<ChannelListingContent channel={channel} onSaved={onListingChanged} />
+				</TabsContent>
+
 				<TabsContent value="admins">{renderAdminsContent()}</TabsContent>
 			</Tabs>
 		</div>
 	)
 }
-
-import { AddAdminSheet } from "@/components/add-admin-sheet"
-import { StatCard } from "@/components/channel-stat-card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { formatNumber } from "@/lib/utils"
 
 export const ChannelPageSkeleton = () => {
 	return (

@@ -12,3 +12,10 @@ export const VerifyChannelParam = z.object({
 export const AddAdminToChannelParam = z.object({
 	newAdminUsername: z.string().min(2),
 })
+
+export const SetListingInfoParam = z.object({
+	postPrice: z.number(),
+	storyPrice: z.number(),
+	forwardPrice: z.number(),
+	isPublic: z.boolean().default(false),
+})

@@ -20,19 +20,18 @@ export interface ChannelModel {
 	subCount: number
 	avgPostReach?: number | undefined
 	languages: LanguageStats[]
+	offersCount: number
+	adsPublished: number
+	listingInfo: {
+		postPrice: number
+		storyPrice: number
+		forwardPrice: number
+		isPublic: boolean
+	}
 }
 
 export interface ChannelDetailResponse {
-	channel: {
-		title: string | null
-		tgId: string
-		tgLink: string
-		subCount: number
-		avgPostReach: number
-		languages: { code: string; name: string; percentage: number }[]
-		offersCount: number
-		adsPublished: number
-	}
+	channel: ChannelModel
 	weeklyStats: { day: string; posts: number }[]
 }
 

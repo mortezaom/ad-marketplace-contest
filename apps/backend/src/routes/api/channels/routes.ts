@@ -8,6 +8,7 @@ import {
 	handleGetChannelById,
 	handleGetChannelPhoto,
 	handleGetChannels,
+	handleListingSetting,
 	handleVerifyChannel,
 	hangleAgentForChannel,
 } from "./handlers"
@@ -29,6 +30,8 @@ app.get("/:id", handleAuth, handleGetChannelById)
 app.get("/:id/admins", handleAuth, handleGetChannelAdmins)
 
 app.post("/:id/admins", handleAuth, handleAddAdmin)
+
+app.post("/:id/listing", handleAuth, handleListingSetting)
 
 app.delete("/:id/admins/:adminId", handleAuth, handleDemoteAdmin)
 
