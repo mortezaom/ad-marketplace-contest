@@ -34,7 +34,7 @@ export function ChannelListingContent({ channel, onSaved }: ChannelListingProps)
 	const [storyPrice, setStoryPrice] = useState(`${channel.listingInfo.storyPrice ?? ""}`)
 	const [forwardPrice, setForwardPrice] = useState(`${channel.listingInfo.forwardPrice ?? ""}`)
 
-	const [isPublic, setIsPublic] = useState(channel.listingInfo.isPublic)
+	const [isPublic, setIsPublic] = useState(channel.isPublic)
 
 	const onSave = async () => {
 		setLoading(true)

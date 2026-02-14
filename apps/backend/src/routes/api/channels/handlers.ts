@@ -192,8 +192,8 @@ export const handleGetChannelById = async (c: Context) => {
 							postPrice: 0,
 							storyPrice: 0,
 							forwardPrice: 0,
-							isPublic: false,
 						},
+				isPublic: channel.isPublic ?? false,
 			},
 			weeklyStats,
 		}
@@ -409,14 +409,53 @@ export const handleListingSetting = async (c: Context) => {
 			return c.json(errorResponse("No access to this channel!"), 403)
 		}
 
+		const { isPublic, ...restBody } = body.data
+
 		await db
 			.update(channelsTable)
-			.set({ listingInfo: JSON.stringify(body.data), updatedAt: new Date() })
+			.set({ listingInfo: JSON.stringify(restBody), isPublic, updatedAt: new Date() })
 			.where(eq(channelsTable.id, channel.id))
 
 		return c.json(successResponse({ message: "Updated Successfully!" }))
 	} catch (error) {
 		console.error(error)
 		return c.json(errorResponse("Failed to update listing info", error), 500)
+	}
+}
+
+export const handleGetPublicChannels = async (c: Context) => {
+	try {
+		const channels = await db
+			.select()
+			.from(channelsTable)
+			.where(eq(channelsTable.isPublic, true))
+			.execute()
+
+		return c.json(
+			successResponse(
+				channels.map((c) => {
+					return {
+						title: c.title,
+						tgId: c.tgId.toString(),
+						tgLink: c.tgLink,
+						subCount: c.subCount ?? 0,
+						avgPostReach: c.avgPostReach ?? 0,
+						languages: c.languages ? JSON.parse(c.languages) : [],
+						offersCount: 0,
+						adsPublished: 0,
+						listingInfo: c.listingInfo
+							? JSON.parse(c.listingInfo)
+							: {
+									postPrice: 0,
+									storyPrice: 0,
+									forwardPrice: 0,
+								},
+						isPublic: c.isPublic ?? false,
+					}
+				})
+			)
+		)
+	} catch (error) {
+		return c.json(errorResponse("Failed to get channel list", error), 500)
 	}
 }

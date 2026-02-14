@@ -7,7 +7,6 @@ import { H4, P } from "./customized/typography"
 
 export function AdList() {
 	const router = useRouter()
-	// biome-ignore lint/correctness/useExhaustiveDependencies: ignored
 	useEffect(() => {
 		setMainButton("ads", () => router.push("/advertisement/new"))
 	}, [])

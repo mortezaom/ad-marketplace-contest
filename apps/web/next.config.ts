@@ -9,11 +9,6 @@ const nextConfig: NextConfig = {
 	async redirects() {
 		return [
 			{
-				source: "/channels",
-				destination: "/",
-				permanent: true,
-			},
-			{
 				source: "/advertisement",
 				destination: "/",
 				permanent: true,

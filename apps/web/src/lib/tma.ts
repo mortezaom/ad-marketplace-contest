@@ -1,7 +1,10 @@
 import { backButton, mainButton } from "@telegram-apps/sdk-react"
 
-export const setMainButton = (type: "channel" | "ads", onClick: () => void) => {
+export const setMainButton = (type: "channel" | "ads", onClick: () => void, forceMount = false) => {
 	setTimeout(() => {
+		if (forceMount && !mainButton.isMounted()) {
+			mainButton.mount()
+		}
 		if (mainButton.isMounted()) {
 			mainButton.setParams({
 				text: type === "ads" ? "Create Advertisement" : "Add Channel",

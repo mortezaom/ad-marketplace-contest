@@ -26,8 +26,8 @@ export interface ChannelModel {
 		postPrice: number
 		storyPrice: number
 		forwardPrice: number
-		isPublic: boolean
 	}
+	isPublic: boolean
 }
 
 export interface ChannelDetailResponse {

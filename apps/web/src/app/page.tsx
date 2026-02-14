@@ -2,14 +2,20 @@
 
 import { DotLottieReact } from "@lottiefiles/dotlottie-react"
 import { useLaunchParams } from "@telegram-apps/sdk-react"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, ExternalLink, MoreVertical } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { AdList } from "@/components/ad-list"
-import { ChannelsList } from "@/components/channels-list"
+import { ChannelsCatalog } from "@/components/channels-catalog"
 import { H4 } from "@/components/customized/typography"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { setMainButton } from "@/lib/tma"
 import { cn } from "@/lib/utils"
@@ -31,14 +37,29 @@ export default function HomePage() {
 					<AvatarImage alt="@shadcn" src={userData?.photo_url} />
 					<AvatarFallback>CN</AvatarFallback>
 				</Avatar>
-				<Button
-					className="cursor-pointer rounded-full"
-					onClick={() => setInfoOpen(!infoOpen)}
-					size="icon"
-					variant="secondary"
-				>
-					<ChevronDown className={cn("transition", infoOpen ? "rotate-180" : "")} />
-				</Button>
+				<div className="flex items-center justify-center gap-2">
+					<Button
+						className="cursor-pointer rounded-full"
+						onClick={() => setInfoOpen(!infoOpen)}
+						size="icon"
+						variant="secondary"
+					>
+						<ChevronDown className={cn("transition", infoOpen ? "rotate-180" : "")} />
+					</Button>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button className="cursor-pointer rounded-full" size="icon" variant="secondary">
+								<MoreVertical className="h-5 w-5" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuItem onClick={() => router.push("/channels")}>
+								<ExternalLink className="mr-2 h-4 w-4" />
+								My Channels
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</div>
 			</div>
 			<div
 				className={cn(
@@ -68,7 +89,7 @@ export default function HomePage() {
 					<AdList />
 				</TabsContent>
 				<TabsContent value="channels">
-					<ChannelsList />
+					<ChannelsCatalog />
 				</TabsContent>
 			</Tabs>
 		</main>

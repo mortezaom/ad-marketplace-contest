@@ -1,27 +1,19 @@
-"use client"
-
-import { useRouter } from "next/navigation"
+import { openTelegramLink } from "@telegram-apps/sdk-react"
 import { Fragment, useEffect, useState } from "react"
 import type { ChannelModel } from "shared"
 import { toast } from "sonner"
-import { Separator } from "@/components/ui/separator"
 import { request } from "@/lib/http"
-import { setMainButton } from "@/lib/tma"
-import { ChannelCard, ChannelCardSkeleton } from "./channel-card"
 import { H4, P } from "./customized/typography"
+import { Separator } from "./ui/separator"
+import { VChannelDetailCard, VChannelDetailCardSkeleton } from "./verified-channel-card"
 
-export function ChannelsList() {
-	const router = useRouter()
-	useEffect(() => {
-		setMainButton("channel", () => router.push("/channels/new"), true)
-	}, [])
-
+export const ChannelsCatalog = () => {
+	const [loading, setLoading] = useState(false)
 	const [channels, setChannels] = useState<ChannelModel[]>([])
-	const [loading, setLoading] = useState(true)
 
 	const loadChannels = async () => {
 		setLoading(true)
-		const res = await request<ChannelModel[]>("channels/get-channels")
+		const res = await request<ChannelModel[]>("channels/public-channels")
 		setLoading(false)
 
 		if (res.ok) {
@@ -37,22 +29,22 @@ export function ChannelsList() {
 	}, [])
 
 	const onChannelClicked = (channel: ChannelModel) => {
-		router.push(`/channels/${channel.tgId}`)
+		openTelegramLink(channel.tgLink)
 	}
 
 	return (
 		<>
 			{!loading && channels.length === 0 && (
 				<div className="flex min-h-96 w-full flex-col items-center justify-center bg-background p-8 text-center">
-					<H4>No Channel added Yet.</H4>
+					<H4>No Verified Channel Yet.</H4>
 					<P className="text-muted-foreground text-sm">
-						Add your first channel by clicking the button below.
+						You may see more verified channels here next time.
 					</P>
 				</div>
 			)}
 			{loading && (
 				<div className="flex w-full flex-col items-start justify-start gap-4">
-					<ChannelCardSkeleton />
+					<VChannelDetailCardSkeleton />
 				</div>
 			)}
 			{!loading && channels.length > 0 && (
@@ -60,7 +52,7 @@ export function ChannelsList() {
 					{channels.map((channel, index) => (
 						<Fragment key={channel.tgLink}>
 							{index > 0 && <Separator className="my-1" />}
-							<ChannelCard channel={channel} onClick={() => onChannelClicked(channel)} />
+							<VChannelDetailCard channel={channel} onClick={() => onChannelClicked(channel)} />
 						</Fragment>
 					))}
 				</div>

@@ -83,6 +83,7 @@ export const channelsTable = pgTable("channels", {
 	avgPostReach: integer("avg_post_reach").default(0),
 	languages: text("languages"),
 	listingInfo: text("listingInfo"),
+	isPublic: boolean("is_public").default(false),
 	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
