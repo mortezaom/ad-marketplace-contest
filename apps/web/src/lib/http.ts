@@ -129,3 +129,65 @@ export const getChannelPhoto = (tgLink: string) => {
 	console.log(`${process.env.NEXT_PUBLIC_API_URL}channels/channel-photo/${tgLink.split("/").pop()}`)
 	return `${process.env.NEXT_PUBLIC_API_URL}channels/channel-photo/${tgLink.split("/").pop()}`
 }
+
+// Ad Request API functions with filters
+export const createAdRequest = (data: {
+	title: string
+	description?: string
+	budget: number
+	minSubscribers?: number
+	language?: string
+	deadline?: string
+	adFormat?: "post" | "story" | "forward"
+	contentGuidelines?: string
+}) => request("ads", { method: "POST", json: data })
+
+export const getAdRequests = (filters?: {
+	status?: "open" | "in_progress" | "completed" | "cancelled"
+	minBudget?: number
+	maxBudget?: number
+	language?: string
+	adFormat?: "post" | "story" | "forward"
+}) => {
+	const params = new URLSearchParams()
+	if (filters?.status) params.set("status", filters.status)
+	if (filters?.minBudget) params.set("minBudget", filters.minBudget.toString())
+	if (filters?.maxBudget) params.set("maxBudget", filters.maxBudget.toString())
+	if (filters?.language) params.set("language", filters.language)
+	if (filters?.adFormat) params.set("adFormat", filters.adFormat)
+
+	const queryString = params.toString()
+	return request(`ads${queryString ? `?${queryString}` : ""}`)
+}
+
+export const getMyAdRequests = () => request("ads/my-ads")
+
+export const getAdRequest = (id: number) => request(`ads/${id}`)
+
+export const updateAdRequest = (
+	id: number,
+	data: {
+		title?: string
+		description?: string
+		budget?: number
+		minSubscribers?: number
+		language?: string
+		deadline?: string
+		adFormat?: "post" | "story" | "forward"
+		contentGuidelines?: string
+		status?: "open" | "in_progress" | "completed" | "cancelled"
+	}
+) => request(`ads/${id}`, { method: "PUT", json: data })
+
+export const deleteAdRequest = (id: number) => request(`ads/${id}`, { method: "DELETE" })
+
+export const applyToAdRequest = (id: number, channelId: number) =>
+	request(`ads/${id}/apply`, { method: "POST", json: { channelId } })
+
+export const getAdRequestApplications = (id: number) => request(`ads/${id}/applications`)
+
+export const updateApplicationStatus = (
+	id: number,
+	applicationId: number,
+	status: "pending" | "accepted" | "rejected"
+) => request(`ads/${id}/applications/${applicationId}`, { method: "POST", json: { status } })

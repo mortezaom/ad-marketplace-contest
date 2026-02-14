@@ -103,3 +103,47 @@ export const channelAdminsTable = pgTable("channel_admins", {
 	addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
 	source: adminSourceEnum("source").notNull().default("telegram"),
 })
+
+// Ad Request enums
+export const adFormatEnum = pgEnum("ad_format", ["post", "story", "forward"])
+export const adRequestStatusEnum = pgEnum("ad_request_status", [
+	"open",
+	"in_progress",
+	"completed",
+	"cancelled",
+])
+export const adApplicationStatusEnum = pgEnum("ad_application_status", [
+	"pending",
+	"accepted",
+	"rejected",
+])
+
+// Ad Requests table - advertiser creates campaign requests
+export const adRequestsTable = pgTable("ad_requests", {
+	id: integer().primaryKey().generatedAlwaysAsIdentity(),
+	title: text("title").notNull(),
+	description: text("description"),
+	budget: integer("budget").notNull().default(0),
+	minSubscribers: integer("min_subscribers").default(0),
+	language: text("language"),
+	deadline: timestamp("deadline", { withTimezone: true }),
+	adFormat: adFormatEnum("ad_format").notNull().default("post"),
+	contentGuidelines: text("content_guidelines"),
+	advertiserId: bigint("advertiser_id", { mode: "number" }).notNull(),
+	status: adRequestStatusEnum("status").notNull().default("open"),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// Ad Applications table - channel owners apply to ad requests
+export const adApplicationsTable = pgTable("ad_applications", {
+	id: integer().primaryKey().generatedAlwaysAsIdentity(),
+	adRequestId: integer("ad_request_id")
+		.notNull()
+		.references(() => adRequestsTable.id, { onDelete: "cascade" }),
+	channelId: integer("channel_id")
+		.notNull()
+		.references(() => channelsTable.id, { onDelete: "cascade" }),
+	status: adApplicationStatusEnum("status").notNull().default("pending"),
+	appliedAt: timestamp("applied_at", { withTimezone: true }).notNull().defaultNow(),
+})

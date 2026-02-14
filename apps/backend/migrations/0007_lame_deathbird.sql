@@ -1,1 +1,0 @@
-ALTER TABLE "tg_sessions" ADD COLUMN "session_data" jsonb;

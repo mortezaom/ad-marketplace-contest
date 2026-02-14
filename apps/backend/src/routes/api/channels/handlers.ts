@@ -178,6 +178,7 @@ export const handleGetChannelById = async (c: Context) => {
 
 		const response: ChannelDetailResponse = {
 			channel: {
+				id: channel.id,
 				title: channel.title,
 				tgId: channel.tgId.toString(),
 				tgLink: channel.tgLink,

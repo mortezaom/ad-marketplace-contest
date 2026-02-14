@@ -1,1 +1,0 @@
-ALTER TABLE "channels" ADD CONSTRAINT "channels_tg_id_unique" UNIQUE("tg_id");

@@ -19,6 +19,7 @@ interface GraphData {
 }
 
 interface ChannelStatsResult {
+	id: number
 	title: string | null
 	tgId: bigint
 	tgLink: string
@@ -189,7 +190,7 @@ export const verifyChannelAdmin = async (
 
 		const languages = await extractLanguagesFromStats(tg, stats, statsDc)
 
-		const result: ChannelStatsResult = {
+		const result = {
 			tgId: BigInt(chat.channelId),
 			accessHash: chat.accessHash.toString(),
 			title: title ?? null,
@@ -199,7 +200,7 @@ export const verifyChannelAdmin = async (
 			languages,
 		}
 
-		await db
+		const insertedChannel = await db
 			.insert(channelsTable)
 			.values({
 				tgId: result.tgId,
@@ -223,8 +224,9 @@ export const verifyChannelAdmin = async (
 					updatedAt: new Date(),
 				},
 			})
+			.returning({ id: channelsTable.id })
 
-		return result
+		return { ...result, id: insertedChannel[0].id }
 	} catch (err) {
 		console.error(err)
 		throw err
@@ -357,6 +359,7 @@ export const getChannelsByUser = async (tgUserId: number): Promise<ChannelStatsR
 	}
 
 	return userAdminChannels.map(({ channel }) => ({
+		id: channel.id,
 		tgId: channel.tgId,
 		accessHash: "",
 		title: channel.title ?? "Unknown",

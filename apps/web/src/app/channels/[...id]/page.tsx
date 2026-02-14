@@ -98,7 +98,9 @@ export default function ChannelPage({ params }: { params: Promise<{ id: string }
 	}
 
 	const onListingChanged = (body: ListingBodyType) => {
-		if (!channel) { return }
+		if (!channel) {
+			return
+		}
 		setChannel({
 			...channel,
 			listingInfo: body,

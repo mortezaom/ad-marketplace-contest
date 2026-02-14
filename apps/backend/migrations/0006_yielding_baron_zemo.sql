@@ -1,1 +1,0 @@
-ALTER TABLE "tg_sessions" ALTER COLUMN "tg_user_id" SET DATA TYPE text;

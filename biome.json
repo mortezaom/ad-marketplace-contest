@@ -45,6 +45,9 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "style": {
+        "noNestedTernary": "off"
+      },
       "a11y": {
         "noLabelWithoutControl": "off",
         "noStaticElementInteractions": "off",
