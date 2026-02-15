@@ -350,6 +350,7 @@ export const handleGetAdRequestApplications = async (c: Context) => {
 					tgLink: channelsTable.tgLink,
 					subCount: channelsTable.subCount,
 					avgPostReach: channelsTable.avgPostReach,
+					languages: channelsTable.languages,
 				},
 			})
 			.from(adApplicationsTable)
@@ -357,7 +358,17 @@ export const handleGetAdRequestApplications = async (c: Context) => {
 			.where(eq(adApplicationsTable.adRequestId, id))
 			.orderBy(desc(adApplicationsTable.appliedAt))
 
-		return c.json(successResponse(applications))
+		const formatedResponse = applications.map(({ channel, ...rest }) => {
+			return {
+				...rest,
+				channel: {
+					...channel,
+					languages: channel.languages ? JSON.parse(channel.languages) : [],
+				},
+			}
+		})
+
+		return c.json(successResponse(formatedResponse))
 	} catch (error) {
 		console.error("Error fetching applications:", error)
 		return c.json(errorResponse("Failed to fetch applications", error), 500)

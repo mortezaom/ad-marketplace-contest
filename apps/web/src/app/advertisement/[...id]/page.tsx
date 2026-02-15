@@ -1,23 +1,16 @@
+// components/ads/AdRequestDetailPage.tsx
 "use client"
 
-import { AlertTriangleIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import type { ChannelModel } from "shared"
 import { toast } from "sonner"
+import { ApplicationReviewSheet } from "@/components/application-review-sheet"
+import { ChannelSelectionSheet } from "@/components/channel-selection-sheet"
 import { H3, H4, P } from "@/components/customized/typography"
-import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import {
-	Sheet,
-	SheetClose,
-	SheetContent,
-	SheetFooter,
-	SheetHeader,
-	SheetTitle,
-} from "@/components/ui/sheet"
 import { Spinner } from "@/components/ui/spinner"
 import { request } from "@/lib/http"
 import { setBackButton } from "@/lib/tma"
@@ -37,23 +30,12 @@ interface AdRequestDetail {
 	hasApplied?: boolean
 }
 
-interface Application {
+export interface Application {
 	id: number
 	channelId: number
 	status: string
 	appliedAt: string
-	channel: {
-		title: string | null
-		subCount: number
-		avgPostReach: number
-	}
-}
-
-interface ChannelOption {
-	id: number
-	title: string
-	subCount: number
-	avgPostReach: number
+	channel: ChannelModel
 }
 
 export default function AdRequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -61,12 +43,14 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 	const [loading, setLoading] = useState(true)
 	const [adRequest, setAdRequest] = useState<AdRequestDetail | null>(null)
 	const [applications, setApplications] = useState<Application[]>([])
-	const [channelOptions, setChannelOptions] = useState<ChannelOption[]>([])
+	const [channelOptions, setChannelOptions] = useState<ChannelModel[]>([])
 	const [sheetOpen, setSheetOpen] = useState(false)
 	const [sheetLoading, setSheetLoading] = useState(false)
 	const [sheetError, setSheetError] = useState<string | null>(null)
 	const [applying, setApplying] = useState(false)
 	const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(null)
+
+	const [selectedApplication, setSelectedApplication] = useState<Application | null>(null)
 
 	useEffect(() => {
 		params.then((p) => setResolvedParams(p))
@@ -117,19 +101,17 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 		setSheetError(null)
 
 		const channelsRes = await request<ChannelModel[]>("channels/get-channels-for-apply", {
-			searchParams: {
-				request: adRequest.id,
-			},
+			searchParams: { request: adRequest.id },
 		})
 
 		setSheetLoading(false)
 
 		if (channelsRes.ok) {
-			const channels = channelsRes.data as ChannelOption[]
+			const channels = channelsRes.data
 			setChannelOptions(channels)
-			setSheetError(channels.length === 0 ? "Error: No channels available" : null)
+			setSheetError(channels.length === 0 ? "No channels available" : null)
 		} else {
-			setSheetError(channelsRes.message || "Error: Failed to load channels")
+			setSheetError(channelsRes.message || "Failed to load channels")
 			setChannelOptions([])
 		}
 
@@ -227,7 +209,7 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 				{adRequest.minSubscribers > 0 && (
 					<Badge variant="outline">Min {adRequest.minSubscribers.toLocaleString()} subs</Badge>
 				)}
-				{adRequest.language && <Badge variant="outline">{adRequest.language}</Badge>}
+				{adRequest.language && <Badge variant="outline">Language: {adRequest.language}</Badge>}
 			</div>
 
 			{adRequest.contentGuidelines && (
@@ -255,12 +237,17 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 					<H4 className="mb-2">Applications ({applications.length})</H4>
 					<div className="flex flex-col gap-2">
 						{applications.map((app) => (
-							<div className="flex items-center justify-between rounded-lg border p-2" key={app.id}>
+							<button
+								className="flex items-center justify-between rounded-lg border p-2"
+								key={app.id}
+								onClick={() => setSelectedApplication(app)}
+								type="button"
+							>
 								<div className="flex flex-col">
-									<span className="font-medium text-sm">{app.channel.title}</span>
+									<span className="text-start font-medium text-sm">{app.channel.title}</span>
 									<span className="text-muted-foreground text-xs">
 										{app.channel.subCount.toLocaleString()} subs •{" "}
-										{app.channel.avgPostReach.toLocaleString()} avg views
+										{app.channel.avgPostReach?.toLocaleString() ?? "N/A"} avg views
 									</span>
 								</div>
 								<Badge
@@ -275,60 +262,27 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 								>
 									{app.status}
 								</Badge>
-							</div>
+							</button>
 						))}
 					</div>
 				</div>
 			)}
 
-			{/* Channel Selection Sheet */}
-			<Sheet onOpenChange={setSheetOpen} open={sheetOpen}>
-				<SheetContent className="max-h-[70vh] overflow-y-auto" side="bottom">
-					<SheetHeader>
-						<SheetTitle>Select a Channel</SheetTitle>
-					</SheetHeader>
-					<div className="mt-4">
-						{sheetLoading ? (
-							<div className="flex justify-center py-8">
-								<Spinner />
-							</div>
-						) : sheetError ? (
-							<div className="flex flex-col gap-2 px-4">
-								<Alert className="max-w-md border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
-									<AlertTriangleIcon />
-									<AlertTitle className="line-clamp-none">{sheetError}</AlertTitle>
-								</Alert>
-							</div>
-						) : (
-							<div className="flex flex-col gap-2 px-4">
-								{channelOptions.map((channel) => (
-									<button
-										className="flex items-center justify-between rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 disabled:opacity-50"
-										disabled={applying}
-										key={channel.id}
-										onClick={() => handleChannelSelect(channel.id)}
-										type="button"
-									>
-										<div className="flex flex-col">
-											<span className="font-medium">{channel.title}</span>
-											<span className="text-muted-foreground text-xs">
-												{channel.subCount.toLocaleString()} subs •{" "}
-												{channel.avgPostReach.toLocaleString()} avg views
-											</span>
-										</div>
-										{applying && <Spinner data-icon="inline-start" />}
-									</button>
-								))}
-							</div>
-						)}
-					</div>
-					<SheetFooter>
-						<SheetClose asChild>
-							<Button variant="secondary">Close</Button>
-						</SheetClose>
-					</SheetFooter>
-				</SheetContent>
-			</Sheet>
+			<ChannelSelectionSheet
+				applying={applying}
+				channels={channelOptions}
+				error={sheetError}
+				loading={sheetLoading}
+				onOpenChange={setSheetOpen}
+				onSelect={handleChannelSelect}
+				open={sheetOpen}
+			/>
+
+			<ApplicationReviewSheet
+				application={selectedApplication}
+				onOpenChange={(open) => !open && setSelectedApplication(null)}
+				onRefresh={loadData}
+			/>
 		</main>
 	)
 }

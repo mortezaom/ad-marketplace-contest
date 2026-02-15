@@ -17,6 +17,7 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { authStorage } from "@/lib/storage"
 import { setMainButton } from "@/lib/tma"
 import { cn } from "@/lib/utils"
 
@@ -28,7 +29,15 @@ export default function HomePage() {
 		setMainButton("ads", () => router.push("/advertisement/new"))
 	}, [])
 
-	const [infoOpen, setInfoOpen] = useState(true)
+	const [infoOpen, setInfoOpen] = useState(authStorage.getClosedIntro())
+
+	const onCloseInfo = (value: boolean) => {
+		// minimize localstorage calls
+		if (value) {
+			authStorage.setClosedIntro()
+		}
+		setInfoOpen(value)
+	}
 
 	return (
 		<main className="flex min-h-screen w-full flex-col items-center justify-start px-4 py-2">
@@ -40,7 +49,7 @@ export default function HomePage() {
 				<div className="flex items-center justify-center gap-2">
 					<Button
 						className="cursor-pointer rounded-full"
-						onClick={() => setInfoOpen(!infoOpen)}
+						onClick={() => onCloseInfo(!infoOpen)}
 						size="icon"
 						variant="secondary"
 					>

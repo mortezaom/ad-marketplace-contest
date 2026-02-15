@@ -32,6 +32,13 @@ export const authStorage = {
 		window.localStorage.setItem(USER_KEY, JSON.stringify(user))
 	},
 
+	clearUser(): void {
+		if (typeof window === "undefined") {
+			return
+		}
+		window.localStorage.removeItem(USER_KEY)
+	},
+
 	setToken(token: string): void {
 		if (typeof window === "undefined") {
 			return
@@ -46,10 +53,20 @@ export const authStorage = {
 		return window.localStorage.getItem(TOKEN_KEY)
 	},
 
-	clearUser(): void {
+	setClosedIntro() {
 		if (typeof window === "undefined") {
 			return
 		}
-		window.localStorage.removeItem(USER_KEY)
+		const key = "intro-closed"
+		if (!window.localStorage.getItem(key)) {
+			window.localStorage.setItem(key, "true")
+		}
+	},
+
+	getClosedIntro(): boolean {
+		if (typeof window === "undefined") {
+			return false
+		}
+		return !!window.localStorage.getItem("intro-closed")
 	},
 }

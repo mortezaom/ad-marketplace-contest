@@ -1,3 +1,4 @@
+import { openTelegramLink } from "@telegram-apps/sdk-react"
 import { Coins, ExternalLink, Tag, TrendingUp, Users } from "lucide-react"
 import type { ChannelModel } from "shared"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -15,9 +16,6 @@ interface VChannelDetailCardProps {
 
 export function VChannelDetailCard({ channel, onClick, className }: VChannelDetailCardProps) {
 	const initials = (channel.title ?? "CH").slice(0, 2).toUpperCase()
-	const telegramUrl = channel.tgLink.startsWith("http")
-		? channel.tgLink
-		: `https://t.me/${channel.tgLink}`
 
 	const getLanguagePercentage = (langTotal: number) => {
 		const total = channel.languages.reduce((acc, lang) => acc + lang.total, 0)
@@ -44,16 +42,14 @@ export function VChannelDetailCard({ channel, onClick, className }: VChannelDeta
 
 				<div className="min-w-0 flex-1">
 					<h3 className="truncate font-semibold text-sm">{channel.title}</h3>
-					<a
+					<button
 						className="mt-0.5 flex items-center gap-1 text-muted-foreground text-xs hover:text-primary"
-						href={telegramUrl}
-						onClick={(e) => e.stopPropagation()}
-						rel="noopener noreferrer"
-						target="_blank"
+						onClick={() => openTelegramLink(channel.tgLink)}
+						type="button"
 					>
 						{channel.tgLink}
 						<ExternalLink className="h-3 w-3" />
-					</a>
+					</button>
 				</div>
 			</div>
 
