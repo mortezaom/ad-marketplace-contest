@@ -1,9 +1,8 @@
 "use client"
 
+import { Calendar, Globe, Users } from "lucide-react"
 import type { AdRequestModel } from "shared"
 import { Badge } from "./ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card"
-import { Separator } from "./ui/separator"
 
 interface AdRequestCardProps {
 	adRequest: AdRequestModel & { hasApplied?: boolean; isOwn?: boolean }
@@ -12,88 +11,116 @@ interface AdRequestCardProps {
 }
 
 export function AdRequestCard({ adRequest, onClick, className }: AdRequestCardProps) {
-	const formatBudget = (budget: number) => {
-		return new Intl.NumberFormat("en-US", {
-			style: "currency",
-			currency: "USD",
-			minimumFractionDigits: 0,
-		}).format(budget)
-	}
+	const formatBudget = (budget: number) => `${budget.toLocaleString()} TON`
 
-	const formatDate = (date: Date | string | null) => {
+	const formatPublishTime = (date: Date | string | null) => {
 		if (!date) {
-			return "No deadline"
+			return null
 		}
-		return new Date(date).toLocaleDateString("en-US", {
-			month: "short",
-			day: "numeric",
-			year: "numeric",
-		})
+		const d = new Date(date)
+		const now = new Date()
+		const diffDays = Math.ceil((d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+		if (diffDays < 0) {
+			return "Overdue"
+		}
+		if (diffDays === 0) {
+			return "for Today"
+		}
+		if (diffDays === 1) {
+			return "for Tomorrow"
+		}
+		if (diffDays <= 7) {
+			return `in ${diffDays} days`
+		}
+		return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
 	}
 
-	const getStatusBadge = (status: string) => {
+	const getStatusConfig = (status: string) => {
 		switch (status) {
 			case "open":
-				return <Badge variant="default">Open</Badge>
+				return { label: "Open", variant: "default" as const }
 			case "in_progress":
-				return <Badge variant="secondary">In Progress</Badge>
+				return { label: "Active", variant: "secondary" as const }
 			case "completed":
-				return <Badge variant="outline">Completed</Badge>
+				return { label: "Done", variant: "outline" as const }
 			case "cancelled":
-				return <Badge variant="destructive">Cancelled</Badge>
+				return { label: "Cancelled", variant: "destructive" as const }
 			default:
-				return <Badge>{status}</Badge>
+				return { label: status, variant: "outline" as const }
 		}
 	}
 
-	const getFormatBadge = (format: string) => {
-		return <Badge variant="outline">{format}</Badge>
-	}
+	const statusConfig = getStatusConfig(adRequest.status)
 
 	return (
-		<Card
-			className={`cursor-pointer transition-colors hover:bg-muted/50 ${className}`}
+		<div
+			className={`group flex cursor-pointer flex-col gap-2 rounded-lg border bg-card p-3 transition-colors hover:bg-muted/50 ${className}`}
 			onClick={() => onClick?.(adRequest)}
 		>
-			<CardHeader className="pb-2">
-				<div className="flex items-start justify-between">
-					<CardTitle className="line-clamp-1 text-lg">{adRequest.title}</CardTitle>
-					<div className="flex flex-col items-end gap-1">
-						{getStatusBadge(adRequest.status)}
-						{getFormatBadge(adRequest.adFormat)}
-					</div>
-				</div>
-			</CardHeader>
-			<CardContent className="pb-3">
-				{adRequest.description && (
-					<p className="mb-3 line-clamp-2 text-muted-foreground text-sm">{adRequest.description}</p>
-				)}
-				<Separator className="my-2" />
-				<div className="flex flex-wrap items-center gap-2 text-sm">
-					<span className="font-semibold text-primary">{formatBudget(adRequest.budget)}</span>
-					{adRequest.minSubscribers > 0 && (
-						<Badge className="text-xs" variant="outline">
-							Min {adRequest.minSubscribers.toLocaleString()} subs
-						</Badge>
-					)}
-					{adRequest.language && (
-						<Badge className="text-xs" variant="outline">
-							{adRequest.language}
-						</Badge>
-					)}
-					<span className="ml-auto text-muted-foreground text-xs">
-						Deadline: {formatDate(adRequest.deadline)}
+			<div className="flex items-center justify-between gap-2">
+				<Badge className="h-5 shrink-0 px-1.5 py-0 text-[10px] capitalize" variant="default">
+					{adRequest.adFormat}
+				</Badge>
+				<div className="flex min-w-0 items-center gap-1.5">
+					<span className="whitespace-nowrap font-bold text-primary text-sm">
+						{formatBudget(adRequest.budget)}
 					</span>
-				</div>
-				{"hasApplied" in adRequest && adRequest.hasApplied && (
-					<div className="mt-2">
-						<Badge className="text-xs" variant="secondary">
+					{adRequest.hasApplied && (
+						<Badge
+							className="h-5 shrink-0 bg-amber-100 px-1.5 py-0 text-[10px] text-amber-800"
+							variant="secondary"
+						>
 							Applied
 						</Badge>
+					)}
+					{adRequest.isOwn && (
+						<Badge
+							className="h-5 shrink-0 bg-amber-100 px-1.5 py-0 text-[10px] text-amber-800"
+							variant="secondary"
+						>
+							Owner
+						</Badge>
+					)}
+				</div>
+			</div>
+
+			<h3 className="min-w-0 flex-1 truncate font-medium text-sm">{adRequest.title}</h3>
+
+			<div className="flex items-center gap-3 text-muted-foreground text-xs">
+				{adRequest.minSubscribers > 0 && (
+					<>
+						<div className="flex items-center gap-1">
+							<Users className="h-3 w-3" />
+							{adRequest.minSubscribers >= 1000
+								? `${(adRequest.minSubscribers / 1000).toFixed(0)}K`
+								: adRequest.minSubscribers}
+						</div>
+						•
+					</>
+				)}
+				{adRequest.language && (
+					<>
+						<div className="flex items-center gap-1">
+							<Globe className="h-3 w-3" />
+							{adRequest.language}
+						</div>
+						•
+					</>
+				)}
+
+				<div className="flex items-center gap-1">
+					<Badge className="h-5 px-1.5 py-0 text-[10px]" variant={statusConfig.variant}>
+						{statusConfig.label}
+					</Badge>
+				</div>
+				{adRequest.deadline && (
+					<div className="ml-auto flex items-center gap-1">
+						<Calendar className="h-3 w-3" />
+						{formatPublishTime(adRequest.deadline)}
 					</div>
 				)}
-			</CardContent>
-		</Card>
+			</div>
+		</div>
 	)
 }
 
@@ -103,20 +130,23 @@ interface AdRequestCardSkeletonProps {
 
 export function AdRequestCardSkeleton({ className }: AdRequestCardSkeletonProps) {
 	return (
-		<Card className={className}>
-			<CardHeader className="pb-2">
-				<div className="flex items-start justify-between">
-					<div className="h-6 w-3/4 animate-pulse rounded bg-muted" />
-					<div className="h-5 w-16 animate-pulse rounded bg-muted" />
+		<div className={`flex flex-col gap-2 rounded-lg border bg-card p-3 ${className}`}>
+			<div className="flex items-center justify-between gap-2">
+				<div className="h-5 w-12 animate-pulse rounded bg-muted" />
+				<div className="flex items-center gap-1.5">
+					<div className="h-4 w-14 animate-pulse rounded bg-muted" />
+					<div className="h-5 w-14 animate-pulse rounded bg-muted" />
 				</div>
-			</CardHeader>
-			<CardContent className="pb-3">
-				<div className="mb-3 h-4 w-full animate-pulse rounded bg-muted" />
-				<div className="flex gap-2">
-					<div className="h-4 w-20 animate-pulse rounded bg-muted" />
-					<div className="h-4 w-24 animate-pulse rounded bg-muted" />
-				</div>
-			</CardContent>
-		</Card>
+			</div>
+			<div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+			<div className="flex items-center gap-3 text-muted-foreground text-xs">
+				<div className="h-3 w-10 animate-pulse rounded bg-muted" />
+				<div className="h-3 w-1 animate-pulse rounded bg-muted" />
+				<div className="h-3 w-8 animate-pulse rounded bg-muted" />
+				<div className="h-3 w-1 animate-pulse rounded bg-muted" />
+				<div className="h-5 w-10 animate-pulse rounded bg-muted" />
+				<div className="ml-auto h-3 w-12 animate-pulse rounded bg-muted" />
+			</div>
+		</div>
 	)
 }

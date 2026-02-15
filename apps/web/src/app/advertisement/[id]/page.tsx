@@ -1,15 +1,25 @@
 "use client"
 
+import { AlertTriangleIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import type { ChannelModel } from "shared"
 import { toast } from "sonner"
 import { H3, H4, P } from "@/components/customized/typography"
+import { Alert, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import {
+	Sheet,
+	SheetClose,
+	SheetContent,
+	SheetFooter,
+	SheetHeader,
+	SheetTitle,
+} from "@/components/ui/sheet"
 import { Spinner } from "@/components/ui/spinner"
-import { applyToAdRequest, getAdRequest, getAdRequestApplications } from "@/lib/http"
+import { request } from "@/lib/http"
 import { setBackButton } from "@/lib/tma"
 
 interface AdRequestDetail {
@@ -39,11 +49,22 @@ interface Application {
 	}
 }
 
+interface ChannelOption {
+	id: number
+	title: string
+	subCount: number
+	avgPostReach: number
+}
+
 export default function AdRequestDetailPage({ params }: { params: Promise<{ id: string }> }) {
 	const router = useRouter()
 	const [loading, setLoading] = useState(true)
 	const [adRequest, setAdRequest] = useState<AdRequestDetail | null>(null)
 	const [applications, setApplications] = useState<Application[]>([])
+	const [channelOptions, setChannelOptions] = useState<ChannelOption[]>([])
+	const [sheetOpen, setSheetOpen] = useState(false)
+	const [sheetLoading, setSheetLoading] = useState(false)
+	const [sheetError, setSheetError] = useState<string | null>(null)
 	const [applying, setApplying] = useState(false)
 	const [resolvedParams, setResolvedParams] = useState<{ id: string } | null>(null)
 
@@ -63,16 +84,16 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 		}
 
 		setLoading(true)
-		const res = await getAdRequest(Number.parseInt(resolvedParams.id, 10))
+		const res = await request(`ads/${resolvedParams.id}`)
 		setLoading(false)
 
 		if (res.ok) {
 			setAdRequest(res.data as AdRequestDetail)
 			const detail = res.data as AdRequestDetail
 			if (detail.isAdvertiser) {
-				const appsRes = await getAdRequestApplications(Number.parseInt(resolvedParams.id, 10))
+				const appsRes = await request<Application[]>(`ads/${resolvedParams.id}/applications`)
 				if (appsRes.ok) {
-					setApplications(appsRes.data as Application[])
+					setApplications(appsRes.data)
 				}
 			}
 		} else {
@@ -87,24 +108,48 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 		}
 	}, [resolvedParams])
 
-	const handleApply = async () => {
+	const handleApplyClick = async () => {
 		if (!adRequest) {
 			return
 		}
-		setApplying(true)
 
-		const { request } = await import("@/lib/http")
-		const channelsRes = await request<ChannelModel[]>("channels/get-channels")
+		setSheetLoading(true)
+		setSheetError(null)
 
-		if (!channelsRes.ok || channelsRes.data.length === 0) {
-			toast.error("Add a channel first")
-			setApplying(false)
+		const channelsRes = await request<ChannelModel[]>("channels/get-channels-for-apply", {
+			searchParams: {
+				request: adRequest.id,
+			},
+		})
+
+		setSheetLoading(false)
+
+		if (channelsRes.ok) {
+			const channels = channelsRes.data as ChannelOption[]
+			setChannelOptions(channels)
+			setSheetError(channels.length === 0 ? "Error: No channels available" : null)
+		} else {
+			setSheetError(channelsRes.message || "Error: Failed to load channels")
+			setChannelOptions([])
+		}
+
+		setSheetOpen(true)
+	}
+
+	const handleChannelSelect = async (channelId: number) => {
+		if (!adRequest) {
 			return
 		}
 
-		const channels = channelsRes.data as Array<{ id: number }>
-		const res = await applyToAdRequest(adRequest.id, channels[0].id)
+		setApplying(true)
+
+		const res = await request(`ads/${adRequest.id}/apply`, {
+			method: "POST",
+			json: { channelId },
+		})
+
 		setApplying(false)
+		setSheetOpen(false)
 
 		if (res.ok) {
 			toast.success("Applied!")
@@ -119,7 +164,7 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 	const formatDate = (d: string | null) =>
 		d
 			? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-			: "No deadline"
+			: "No Date"
 
 	const getStatusBadge = (s: string) => {
 		const variants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
@@ -151,9 +196,9 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 		<main className="flex min-h-screen w-full flex-col gap-3 overflow-y-auto px-4 py-2">
 			<H3>{adRequest.title}</H3>
 
-			<div className="flex gap-2">
-				{getStatusBadge(adRequest.status)}
+			<div className="flex justify-between capitalize">
 				<Badge variant="outline">{adRequest.adFormat}</Badge>
+				{getStatusBadge(adRequest.status)}
 			</div>
 
 			{adRequest.description && (
@@ -171,7 +216,7 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 					<P className="font-bold text-lg text-primary">{formatBudget(adRequest.budget)}</P>
 				</div>
 				<div>
-					<span className="text-muted-foreground">Deadline</span>
+					<span className="text-muted-foreground">Post Date</span>
 					<P>{formatDate(adRequest.deadline)}</P>
 				</div>
 			</div>
@@ -192,14 +237,15 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 				</div>
 			)}
 
-			{/* Apply Button */}
+			{/* Apply Button for channel owners */}
 			{!adRequest.isAdvertiser && adRequest.status === "open" && (
 				<Button
 					className="w-full"
 					disabled={applying || adRequest.hasApplied}
-					onClick={handleApply}
+					onClick={handleApplyClick}
 				>
-					{applying ? "Applying..." : adRequest.hasApplied ? "Applied" : "Apply with Channel"}
+					{adRequest.hasApplied ? "Applied" : "Apply with Channel"}
+					{applying && <Spinner data-icon="inline-start" />}
 				</Button>
 			)}
 
@@ -214,10 +260,11 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 									<span className="font-medium text-sm">{app.channel.title}</span>
 									<span className="text-muted-foreground text-xs">
 										{app.channel.subCount.toLocaleString()} subs •{" "}
-										{app.channel.avgPostReach.toLocaleString()} views
+										{app.channel.avgPostReach.toLocaleString()} avg views
 									</span>
 								</div>
 								<Badge
+									className="capitalize"
 									variant={
 										app.status === "accepted"
 											? "default"
@@ -233,6 +280,55 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 					</div>
 				</div>
 			)}
+
+			{/* Channel Selection Sheet */}
+			<Sheet onOpenChange={setSheetOpen} open={sheetOpen}>
+				<SheetContent className="max-h-[70vh] overflow-y-auto" side="bottom">
+					<SheetHeader>
+						<SheetTitle>Select a Channel</SheetTitle>
+					</SheetHeader>
+					<div className="mt-4">
+						{sheetLoading ? (
+							<div className="flex justify-center py-8">
+								<Spinner />
+							</div>
+						) : sheetError ? (
+							<div className="flex flex-col gap-2 px-4">
+								<Alert className="max-w-md border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
+									<AlertTriangleIcon />
+									<AlertTitle className="line-clamp-none">{sheetError}</AlertTitle>
+								</Alert>
+							</div>
+						) : (
+							<div className="flex flex-col gap-2 px-4">
+								{channelOptions.map((channel) => (
+									<button
+										className="flex items-center justify-between rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 disabled:opacity-50"
+										disabled={applying}
+										key={channel.id}
+										onClick={() => handleChannelSelect(channel.id)}
+										type="button"
+									>
+										<div className="flex flex-col">
+											<span className="font-medium">{channel.title}</span>
+											<span className="text-muted-foreground text-xs">
+												{channel.subCount.toLocaleString()} subs •{" "}
+												{channel.avgPostReach.toLocaleString()} avg views
+											</span>
+										</div>
+										{applying && <Spinner data-icon="inline-start" />}
+									</button>
+								))}
+							</div>
+						)}
+					</div>
+					<SheetFooter>
+						<SheetClose asChild>
+							<Button variant="secondary">Close</Button>
+						</SheetClose>
+					</SheetFooter>
+				</SheetContent>
+			</Sheet>
 		</main>
 	)
 }

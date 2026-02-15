@@ -1,7 +1,9 @@
+import { transformBigInts } from "./transform"
+
 export const successResponse = (data: object, extra?: object | undefined) => {
 	return {
 		status: "success",
-		data,
+		data: transformBigInts(data),
 		...extra,
 	}
 }

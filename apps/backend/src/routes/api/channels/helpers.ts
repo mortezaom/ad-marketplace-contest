@@ -1,10 +1,10 @@
 import type { Long, TelegramClient } from "@mtcute/bun"
 import type { tl } from "@mtcute/tl"
-import { and, eq } from "drizzle-orm"
+import { and, eq, gte, type SQL } from "drizzle-orm"
 import type { UserModel } from "shared"
 import { mainBot } from "@/bot"
 import { db } from "@/db"
-import { channelAdminsTable, channelsTable, tgSessions } from "@/db/schema"
+import { adRequestsTable, channelAdminsTable, channelsTable, tgSessions } from "@/db/schema"
 import { decodePhotoToken, encodePhotoToken } from "@/utils/helpers"
 import { makeClient, withDelay } from "@/utils/tg-helpers"
 
@@ -346,19 +346,63 @@ export const syncChannelAdmin = async (
 		.onConflictDoNothing()
 }
 
-export const getChannelsByUser = async (tgUserId: number): Promise<ChannelStatsResult[]> => {
+export const getChannelsByUser = async (
+	tgUserId: number,
+	request?: string
+): Promise<ChannelStatsResult[]> => {
+	let requestData: typeof adRequestsTable.$inferSelect | null = null
+
+	if (request) {
+		requestData = await db
+			.select()
+			.from(adRequestsTable)
+			.where(eq(adRequestsTable.id, Number(request)))
+			.execute()
+			.then((req) => (req.length ? req[0] : null))
+
+		if (!requestData) {
+			return []
+		}
+	}
+
+	const conditions: SQL[] = [eq(channelAdminsTable.tgUserId, tgUserId)]
+
+	if (requestData?.minSubscribers != null) {
+		conditions.push(gte(channelsTable.subCount, requestData.minSubscribers))
+	}
+
 	const userAdminChannels = await db
 		.select({ channel: channelsTable })
 		.from(channelsTable)
 		.innerJoin(channelAdminsTable, eq(channelAdminsTable.channelId, channelsTable.id))
-		.where(eq(channelAdminsTable.tgUserId, tgUserId))
+		.where(and(...conditions))
 		.execute()
 
 	if (userAdminChannels.length === 0) {
-		throw new Error("User is not an admin or owner of any channel")
+		const defaultMessage = "User is not an admin or owner of any channel"
+		throw new Error(request ? "No applicable channel for this reqeust!" : defaultMessage)
 	}
 
-	return userAdminChannels.map(({ channel }) => ({
+	let filtered = userAdminChannels
+
+	if (requestData?.language && requestData?.language !== null) {
+		filtered = filtered.filter(({ channel }) => {
+			const langs: string[] = channel.languages ? JSON.parse(channel.languages) : []
+			return langs.includes(requestData.language ?? "")
+		})
+	}
+
+	if (requestData?.budget != null) {
+		filtered = filtered.filter(({ channel }) => {
+			if (!channel.listingInfo) {
+				return false
+			}
+			const listing = JSON.parse(channel.listingInfo)
+			return listing.postPrice > 0 && listing.postPrice <= requestData.budget
+		})
+	}
+
+	return filtered.map(({ channel }) => ({
 		id: channel.id,
 		tgId: channel.tgId,
 		accessHash: "",

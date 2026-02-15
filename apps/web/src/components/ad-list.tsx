@@ -16,9 +16,10 @@ import {
 	SelectValue,
 } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { getAdRequests } from "@/lib/http"
+import { request } from "@/lib/http"
+import { convertAdsFilter } from "@/lib/utils"
+import { AdRequestCard, AdRequestCardSkeleton } from "./ad-request-card"
 import { H4, P } from "./customized/typography"
-import { Badge } from "./ui/badge"
 
 interface AdRequestWithFlags extends AdRequestModel {
 	isOwn?: boolean
@@ -42,9 +43,11 @@ export function AdList() {
 	const [maxBudget, setMaxBudget] = useState("")
 	const [languageFilter, setLanguageFilter] = useState("")
 
+	const [sheetOpen, setSheetOpen] = useState(false)
+
 	const loadAdRequests = async () => {
 		setLoading(true)
-		const res = await getAdRequests({
+		const query = convertAdsFilter({
 			status:
 				statusFilter === "none"
 					? undefined
@@ -53,10 +56,13 @@ export function AdList() {
 			maxBudget: maxBudget ? Number.parseInt(maxBudget, 10) : undefined,
 			language: languageFilter || undefined,
 		})
+
+		const res = await request<AdsResponse>(`ads${query}`)
+
 		setLoading(false)
 
 		if (res.ok) {
-			setAdRequests((res.data as AdsResponse).requests)
+			setAdRequests(res.data.requests)
 		} else {
 			toast.error("Failed to load")
 			setAdRequests([])
@@ -69,40 +75,22 @@ export function AdList() {
 
 	const handleApplyFilters = () => {
 		loadAdRequests()
+		onFilterSheetChange(false)
 	}
 
-	const formatBudget = (b: number) => `${b.toLocaleString()} TON`
-
-	const formatDate = (d: Date | string | null) =>
-		d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""
-
 	const onFilterSheetChange = (open: boolean) => {
+		setSheetOpen(open)
 		mainButton.setParams({
 			isVisible: !open,
 		})
 	}
 
-	const getStatusBadge = (s: string) => {
-		const variants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-			open: "default",
-			in_progress: "secondary",
-			completed: "outline",
-			cancelled: "destructive",
-		}
-		return (
-			<Badge className="text-xs" variant={variants[s] || "default"}>
-				{s}
-			</Badge>
-		)
-	}
-
 	return (
 		<div className="flex w-full flex-col gap-2">
-			<Sheet onOpenChange={onFilterSheetChange}>
+			<Sheet onOpenChange={onFilterSheetChange} open={sheetOpen}>
 				<SheetTrigger asChild>
-					<Button className="gap-2" size="sm" variant="outline">
+					<Button className="ml-auto gap-2" size="icon" variant="outline">
 						<FilterIcon className="h-4 w-4" />
-						Filters {adRequests.length > 0 && `(${adRequests.length})`}
 					</Button>
 				</SheetTrigger>
 				<SheetContent className="h-auto max-h-[70vh]" side="bottom">
@@ -154,7 +142,11 @@ export function AdList() {
 				</SheetContent>
 			</Sheet>
 
-			{loading && <div className="py-4 text-center text-muted-foreground">Loading...</div>}
+			{loading && (
+				<div className="py-4 text-center text-muted-foreground">
+					<AdRequestCardSkeleton />
+				</div>
+			)}
 
 			{!loading && adRequests.length === 0 && (
 				<div className="py-24 text-center">
@@ -169,33 +161,11 @@ export function AdList() {
 			{!loading && adRequests.length > 0 && (
 				<div className="flex flex-col gap-1">
 					{adRequests.map((ad) => (
-						<div
-							className="flex cursor-pointer items-center justify-between rounded-md bg-muted/30 p-2 transition-colors hover:bg-muted/50"
+						<AdRequestCard
+							adRequest={ad}
 							key={ad.id}
 							onClick={() => router.push(`/advertisement/${ad.id}`)}
-						>
-							<div className="min-w-0 flex-1">
-								<div className="flex items-center gap-1">
-									{ad.isOwn && (
-										<Badge className="px-1 text-[10px]" variant="default">
-											Your
-										</Badge>
-									)}
-									{ad.hasApplied && !ad.isOwn && (
-										<Badge className="px-1 text-[10px]" variant="secondary">
-											Applied
-										</Badge>
-									)}
-									<span className="truncate font-medium text-sm">{ad.title}</span>
-								</div>
-								<div className="mt-0.5 flex items-center gap-1 text-muted-foreground text-xs">
-									<span className="font-semibold text-primary">{formatBudget(ad.budget)}</span>
-									{ad.language && <span>• {ad.language}</span>}
-									{formatDate(ad.deadline) && <span>• {formatDate(ad.deadline)}</span>}
-								</div>
-							</div>
-							<div className="ml-2 shrink-0">{getStatusBadge(ad.status)}</div>
-						</div>
+						/>
 					))}
 				</div>
 			)}

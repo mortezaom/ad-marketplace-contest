@@ -1,6 +1,7 @@
 import {
 	bigint,
 	boolean,
+	decimal,
 	integer,
 	pgEnum,
 	pgTable,
@@ -104,7 +105,7 @@ export const channelAdminsTable = pgTable("channel_admins", {
 	source: adminSourceEnum("source").notNull().default("telegram"),
 })
 
-// Ad Request enums
+// Ad Enums
 export const adFormatEnum = pgEnum("ad_format", ["post", "story", "forward"])
 export const adRequestStatusEnum = pgEnum("ad_request_status", [
 	"open",
@@ -118,12 +119,11 @@ export const adApplicationStatusEnum = pgEnum("ad_application_status", [
 	"rejected",
 ])
 
-// Ad Requests table - advertiser creates campaign requests
 export const adRequestsTable = pgTable("ad_requests", {
 	id: integer().primaryKey().generatedAlwaysAsIdentity(),
 	title: text("title").notNull(),
 	description: text("description"),
-	budget: integer("budget").notNull().default(0),
+	budget: decimal("budget", { mode: "number" }).notNull().default(0),
 	minSubscribers: integer("min_subscribers").default(0),
 	language: text("language"),
 	deadline: timestamp("deadline", { withTimezone: true }),
@@ -135,7 +135,6 @@ export const adRequestsTable = pgTable("ad_requests", {
 	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
-// Ad Applications table - channel owners apply to ad requests
 export const adApplicationsTable = pgTable("ad_applications", {
 	id: integer().primaryKey().generatedAlwaysAsIdentity(),
 	adRequestId: integer("ad_request_id")

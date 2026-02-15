@@ -90,13 +90,34 @@ export const handleGetChannels = async (c: Context) => {
 
 		const channels = (await getChannelsByUser(user.tid)).map(({ accessHash, ...channel }) => ({
 			...channel,
-			tgId: channel.tgId.toString(),
 		}))
 
 		return c.json(successResponse(channels))
 	} catch (error) {
 		console.error(error)
 		return c.json(errorResponse("Failed to fetch channels"), 500)
+	}
+}
+
+export const handleGetChannelsForRequest = async (c: Context) => {
+	try {
+		const user = c.get("user") as UserModel
+		const request = c.req.query("request")
+
+		if (!request) {
+			return c.json(errorResponse("request id is mandatory!"))
+		}
+
+		const channels = (await getChannelsByUser(user.tid, request)).map(
+			({ accessHash, ...channel }) => ({
+				...channel,
+				tgId: channel.tgId.toString(),
+			})
+		)
+
+		return c.json(successResponse(channels))
+	} catch (error) {
+		return c.json(errorResponse(`${error}`), 500)
 	}
 }
 

@@ -8,6 +8,7 @@ import {
 	handleGetChannelById,
 	handleGetChannelPhoto,
 	handleGetChannels,
+	handleGetChannelsForRequest,
 	handleGetPublicChannels,
 	handleListingSetting,
 	handleVerifyChannel,
@@ -21,6 +22,8 @@ app.post("/agent-for-channel", handleAuth, hangleAgentForChannel)
 app.post("/verify-channel", handleAuth, handleVerifyChannel)
 
 app.get("/get-channels", handleAuth, handleGetChannels)
+
+app.get("/get-channels-for-apply", handleAuth, handleGetChannelsForRequest)
 
 app.get("/photo/:token", handleAuth, handleGetChannelPhoto)
 

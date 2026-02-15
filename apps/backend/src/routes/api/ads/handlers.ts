@@ -1,4 +1,4 @@
-import { and, desc, eq, exists } from "drizzle-orm"
+import { and, desc, eq, gte, lte, type SQL } from "drizzle-orm"
 import type { Context } from "hono"
 import type { UserModel } from "shared"
 import { db } from "@/db"
@@ -7,13 +7,27 @@ import {
 	adRequestsTable,
 	channelAdminsTable,
 	channelsTable,
-	usersTable,
 } from "@/db/schema"
 import { parseBody } from "@/utils/helpers"
 import { errorResponse, successResponse } from "@/utils/responses"
-import { ApplyToAdRequestSchema, CreateAdRequestSchema, UpdateAdRequestSchema } from "./validators"
+import {
+	ApplyToAdRequestSchema,
+	CreateAdRequestSchema,
+	GetAdRequestsQuerySchema,
+	UpdateAdRequestSchema,
+} from "./validators"
 
-// Create a new ad request
+const paramInt = (c: Context, name: string) => Number.parseInt(c.req.param(name), 10)
+
+const getAdRequestOrFail = async (id: number) => {
+	const [request] = await db
+		.select()
+		.from(adRequestsTable)
+		.where(eq(adRequestsTable.id, id))
+		.limit(1)
+	return request ?? null
+}
+
 export const handleCreateAdRequest = async (c: Context) => {
 	const body = CreateAdRequestSchema.parse(await parseBody(c))
 	const user = c.get("user") as UserModel
@@ -41,115 +55,91 @@ export const handleCreateAdRequest = async (c: Context) => {
 	}
 }
 
-// Get all open ad requests (for channel owners to browse)
 export const handleGetAdRequests = async (c: Context) => {
 	try {
 		const user = c.get("user") as UserModel
 
-		// Get user's channel IDs (channels where user is admin)
 		const userChannels = await db
 			.select({ channelId: channelAdminsTable.channelId })
 			.from(channelAdminsTable)
 			.where(eq(channelAdminsTable.tgUserId, user.tid))
 
-		const userChannelIds = userChannels.map((ch) => ch.channelId)
-		const hasChannels = userChannelIds.length > 0
+		const hasChannels = userChannels.length > 0
 
-		// Get query params for filters
 		const url = new URL(c.req.url)
-		const status = url.searchParams.get("status") as
-			| "open"
-			| "in_progress"
-			| "completed"
-			| "cancelled"
-			| null
-		const minBudget = url.searchParams.get("minBudget")
-		const maxBudget = url.searchParams.get("maxBudget")
-		const language = url.searchParams.get("language")
-		const adFormat = url.searchParams.get("adFormat") as "post" | "story" | "forward" | null
+		const query = GetAdRequestsQuerySchema.parse(Object.fromEntries(url.searchParams))
 
-		// If user has no channels, show only their own ads
-		let requests
-		if (!hasChannels) {
-			// User has no channels - show only their own ads
-			requests = await db
-				.select()
-				.from(adRequestsTable)
-				.where(eq(adRequestsTable.advertiserId, user.tid))
-				.orderBy(desc(adRequestsTable.createdAt))
+		const conditions: SQL[] = []
+
+		if (hasChannels) {
+			conditions.push(eq(adRequestsTable.status, query.status ?? "open"))
 		} else {
-			// User has channels - show all open ads
-			requests = await db
-				.select()
-				.from(adRequestsTable)
-				.where(eq(adRequestsTable.status, "open"))
-				.orderBy(desc(adRequestsTable.createdAt))
+			conditions.push(eq(adRequestsTable.advertiserId, user.tid))
+			if (query.status) {
+				conditions.push(eq(adRequestsTable.status, query.status))
+			}
 		}
 
-		// Apply filters in memory
-		let filteredRequests = requests
-		if (minBudget) {
-			filteredRequests = filteredRequests.filter((r) => r.budget >= Number.parseInt(minBudget, 10))
+		if (query.minBudget) {
+			conditions.push(gte(adRequestsTable.budget, query.minBudget))
 		}
-		if (maxBudget) {
-			filteredRequests = filteredRequests.filter((r) => r.budget <= Number.parseInt(maxBudget, 10))
+		if (query.maxBudget) {
+			conditions.push(lte(adRequestsTable.budget, query.maxBudget))
 		}
-		if (language) {
-			filteredRequests = filteredRequests.filter((r) => r.language === language)
+		if (query.language) {
+			conditions.push(eq(adRequestsTable.language, query.language))
 		}
-		if (adFormat) {
-			filteredRequests = filteredRequests.filter((r) => r.adFormat === adFormat)
-		}
-		if (status) {
-			filteredRequests = filteredRequests.filter((r) => r.status === status)
+		if (query.adFormat) {
+			conditions.push(eq(adRequestsTable.adFormat, query.adFormat))
 		}
 
-		// If user has channels, add isOwn and hasApplied flags
-		const processedRequests = hasChannels
-			? await Promise.all(
-					filteredRequests.map(async (request) => {
-						const existingApplication = await db
-							.select()
-							.from(adApplicationsTable)
-							.where(
-								and(
-									eq(adApplicationsTable.adRequestId, request.id),
-									exists(
-										db
-											.select()
-											.from(channelAdminsTable)
-											.where(
-												and(
-													eq(channelAdminsTable.channelId, adApplicationsTable.channelId),
-													eq(channelAdminsTable.tgUserId, user.tid)
-												)
-											)
-									)
-								)
-							)
-							.limit(1)
+		const requests = await db
+			.select()
+			.from(adRequestsTable)
+			.where(and(...conditions))
+			.orderBy(desc(adRequestsTable.createdAt))
 
-						return {
-							...request,
-							isOwn: request.advertiserId === user.tid,
-							hasApplied: existingApplication.length > 0,
-						}
-					})
+		if (!hasChannels) {
+			const processedRequests = requests.map((r) => ({
+				...r,
+				isOwn: true,
+				hasApplied: false,
+			}))
+			return c.json(
+				successResponse({
+					requests: processedRequests,
+					filters: { hasChannels, total: processedRequests.length },
+				})
+			)
+		}
+
+		const appliedSet = new Set<number>()
+
+		if (requests.length > 0) {
+			const applications = await db
+				.select({ adRequestId: adApplicationsTable.adRequestId })
+				.from(adApplicationsTable)
+				.innerJoin(
+					channelAdminsTable,
+					eq(adApplicationsTable.channelId, channelAdminsTable.channelId)
 				)
-			: filteredRequests.map((request) => ({
-					...request,
-					isOwn: true,
-					hasApplied: false,
-				}))
+				.where(eq(channelAdminsTable.tgUserId, user.tid))
 
-		// Return with filter metadata
+			for (const app of applications) {
+				appliedSet.add(app.adRequestId)
+			}
+		}
+
+		const processedRequests = requests.map((r) => ({
+			...r,
+			isOwn: r.advertiserId === user.tid,
+			hasApplied: appliedSet.has(r.id),
+		}))
+
 		return c.json(
 			successResponse({
 				requests: processedRequests,
-				filters: {
-					hasChannels,
-					total: processedRequests.length,
-				},
+				filters: { hasChannels, total: processedRequests.length },
 			})
 		)
 	} catch (error) {
@@ -158,7 +148,6 @@ export const handleGetAdRequests = async (c: Context) => {
 	}
 }
 
-// Get advertiser's own ad requests
 export const handleGetMyAdRequests = async (c: Context) => {
 	const user = c.get("user") as UserModel
 
@@ -176,27 +165,18 @@ export const handleGetMyAdRequests = async (c: Context) => {
 	}
 }
 
-// Get single ad request by ID
 export const handleGetAdRequestById = async (c: Context) => {
-	const id = c.req.param("id")
+	const id = paramInt(c, "id")
 	const user = c.get("user") as UserModel
 
 	try {
-		const [request] = await db
-			.select()
-			.from(adRequestsTable)
-			.where(eq(adRequestsTable.id, Number.parseInt(id, 10)))
-			.limit(1)
-
+		const request = await getAdRequestOrFail(id)
 		if (!request) {
 			return c.json(errorResponse("Ad request not found"), 404)
 		}
 
-		// Check if user is the advertiser or has a channel applied
-		const isAdvertiser = request.advertiserId === user.tid
-
-		const userApplications = await db
-			.select()
+		const [userApplication] = await db
+			.select({ id: adApplicationsTable.id })
 			.from(adApplicationsTable)
 			.innerJoin(
 				channelAdminsTable,
@@ -208,14 +188,13 @@ export const handleGetAdRequestById = async (c: Context) => {
 					eq(channelAdminsTable.tgUserId, user.tid)
 				)
 			)
-
-		const hasApplied = userApplications.length > 0
+			.limit(1)
 
 		return c.json(
 			successResponse({
 				...request,
-				isAdvertiser,
-				hasApplied,
+				isAdvertiser: request.advertiserId === user.tid,
+				hasApplied: !!userApplication,
 			})
 		)
 	} catch (error) {
@@ -224,40 +203,35 @@ export const handleGetAdRequestById = async (c: Context) => {
 	}
 }
 
-// Update ad request (only advertiser can update)
 export const handleUpdateAdRequest = async (c: Context) => {
-	const id = c.req.param("id")
+	const id = paramInt(c, "id")
 	const body = UpdateAdRequestSchema.parse(await parseBody(c))
 	const user = c.get("user") as UserModel
 
 	try {
-		const [existing] = await db
-			.select()
-			.from(adRequestsTable)
-			.where(eq(adRequestsTable.id, Number.parseInt(id, 10)))
-			.limit(1)
-
+		const existing = await getAdRequestOrFail(id)
 		if (!existing) {
 			return c.json(errorResponse("Ad request not found"), 404)
 		}
 
-		if (existing.advertiserId !== user.tid) {
-			return c.json(errorResponse("You can only update your own ad requests"), 403)
-		}
-
-		const updateData: Record<string, unknown> = {
-			...body,
-			updatedAt: new Date(),
-		}
-
-		if (body.deadline) {
-			updateData.deadline = new Date(body.deadline)
+		// try {
+		// 	assertOwnership(existing.advertiserId, user.tid, "update")
+		// } catch (e: any) {
+		// 	return c.json(errorResponse(e.message), e.status)
+		// }
+		const { message } = assertOwnership(existing.advertiserId, user.tid, "update")
+		if (message) {
+			return c.json(errorResponse(message), 403)
 		}
 
 		const [updated] = await db
 			.update(adRequestsTable)
-			.set(updateData)
-			.where(eq(adRequestsTable.id, Number.parseInt(id, 10)))
+			.set({
+				...body,
+				deadline: body.deadline ? new Date(body.deadline) : undefined,
+				updatedAt: new Date(),
+			})
+			.where(eq(adRequestsTable.id, id))
 			.returning()
 
 		return c.json(successResponse(updated))
@@ -267,48 +241,37 @@ export const handleUpdateAdRequest = async (c: Context) => {
 	}
 }
 
-// Delete ad request (only advertiser can delete)
 export const handleDeleteAdRequest = async (c: Context) => {
-	const id = c.req.param("id")
+	const id = paramInt(c, "id")
 	const user = c.get("user") as UserModel
 
 	try {
-		const [existing] = await db
-			.select()
-			.from(adRequestsTable)
-			.where(eq(adRequestsTable.id, Number.parseInt(id, 10)))
-			.limit(1)
-
+		const existing = await getAdRequestOrFail(id)
 		if (!existing) {
 			return c.json(errorResponse("Ad request not found"), 404)
 		}
 
-		if (existing.advertiserId !== user.tid) {
-			return c.json(errorResponse("You can only delete your own ad requests"), 403)
+		const { message } = assertOwnership(existing.advertiserId, user.tid, "delete")
+		if (message) {
+			return c.json(errorResponse(message), 403)
 		}
 
-		await db.delete(adRequestsTable).where(eq(adRequestsTable.id, Number.parseInt(id, 10)))
+		await db.delete(adRequestsTable).where(eq(adRequestsTable.id, id))
 
-		return c.json(successResponse({ message: "Ad request deleted successfully" }))
+		return c.json(successResponse({ message: "Ad request deleted" }))
 	} catch (error) {
 		console.error("Error deleting ad request:", error)
 		return c.json(errorResponse("Failed to delete ad request", error), 500)
 	}
 }
 
-// Apply to an ad request (channel owner applies)
 export const handleApplyToAdRequest = async (c: Context) => {
-	const id = c.req.param("id")
+	const id = paramInt(c, "id")
 	const body = ApplyToAdRequestSchema.parse(await parseBody(c))
 	const user = c.get("user") as UserModel
 
 	try {
-		const [adRequest] = await db
-			.select()
-			.from(adRequestsTable)
-			.where(eq(adRequestsTable.id, Number.parseInt(id, 10)))
-			.limit(1)
-
+		const adRequest = await getAdRequestOrFail(id)
 		if (!adRequest) {
 			return c.json(errorResponse("Ad request not found"), 404)
 		}
@@ -317,9 +280,8 @@ export const handleApplyToAdRequest = async (c: Context) => {
 			return c.json(errorResponse("This ad request is no longer accepting applications"), 400)
 		}
 
-		// Check if user is admin of the channel they're applying with
 		const [admin] = await db
-			.select()
+			.select({ channelId: channelAdminsTable.channelId })
 			.from(channelAdminsTable)
 			.where(
 				and(
@@ -330,16 +292,15 @@ export const handleApplyToAdRequest = async (c: Context) => {
 			.limit(1)
 
 		if (!admin) {
-			return c.json(errorResponse("You must be an admin of the channel to apply with it"), 403)
+			return c.json(errorResponse("You must be an admin of the channel to apply"), 403)
 		}
 
-		// Check if already applied
 		const [existing] = await db
-			.select()
+			.select({ id: adApplicationsTable.id })
 			.from(adApplicationsTable)
 			.where(
 				and(
-					eq(adApplicationsTable.adRequestId, Number.parseInt(id, 10)),
+					eq(adApplicationsTable.adRequestId, id),
 					eq(adApplicationsTable.channelId, body.channelId)
 				)
 			)
@@ -351,10 +312,7 @@ export const handleApplyToAdRequest = async (c: Context) => {
 
 		const [application] = await db
 			.insert(adApplicationsTable)
-			.values({
-				adRequestId: Number.parseInt(id, 10),
-				channelId: body.channelId,
-			})
+			.values({ adRequestId: id, channelId: body.channelId })
 			.returning()
 
 		return c.json(successResponse(application))
@@ -364,18 +322,12 @@ export const handleApplyToAdRequest = async (c: Context) => {
 	}
 }
 
-// Get applications for an ad request (only advertiser can view)
 export const handleGetAdRequestApplications = async (c: Context) => {
-	const id = c.req.param("id")
+	const id = paramInt(c, "id")
 	const user = c.get("user") as UserModel
 
 	try {
-		const [adRequest] = await db
-			.select()
-			.from(adRequestsTable)
-			.where(eq(adRequestsTable.id, Number.parseInt(id, 10)))
-			.limit(1)
-
+		const adRequest = await getAdRequestOrFail(id)
 		if (!adRequest) {
 			return c.json(errorResponse("Ad request not found"), 404)
 		}
@@ -402,7 +354,7 @@ export const handleGetAdRequestApplications = async (c: Context) => {
 			})
 			.from(adApplicationsTable)
 			.innerJoin(channelsTable, eq(adApplicationsTable.channelId, channelsTable.id))
-			.where(eq(adApplicationsTable.adRequestId, Number.parseInt(id, 10)))
+			.where(eq(adApplicationsTable.adRequestId, id))
 			.orderBy(desc(adApplicationsTable.appliedAt))
 
 		return c.json(successResponse(applications))
@@ -412,20 +364,16 @@ export const handleGetAdRequestApplications = async (c: Context) => {
 	}
 }
 
-// Accept or reject an application (advertiser only)
 export const handleUpdateApplicationStatus = async (c: Context) => {
-	const id = c.req.param("id")
-	const applicationId = c.req.param("applicationId")
-	const { status } = await parseBody(c)
+	const id = paramInt(c, "id")
+	const applicationId = paramInt(c, "applicationId")
+	const { status } = (await parseBody(c)) as {
+		status: "accepted" | "rejected"
+	}
 	const user = c.get("user") as UserModel
 
 	try {
-		const [adRequest] = await db
-			.select()
-			.from(adRequestsTable)
-			.where(eq(adRequestsTable.id, Number.parseInt(id, 10)))
-			.limit(1)
-
+		const adRequest = await getAdRequestOrFail(id)
 		if (!adRequest) {
 			return c.json(errorResponse("Ad request not found"), 404)
 		}
@@ -438,10 +386,7 @@ export const handleUpdateApplicationStatus = async (c: Context) => {
 			.update(adApplicationsTable)
 			.set({ status })
 			.where(
-				and(
-					eq(adApplicationsTable.id, Number.parseInt(applicationId, 10)),
-					eq(adApplicationsTable.adRequestId, Number.parseInt(id, 10))
-				)
+				and(eq(adApplicationsTable.id, applicationId), eq(adApplicationsTable.adRequestId, id))
 			)
 			.returning()
 
@@ -449,12 +394,11 @@ export const handleUpdateApplicationStatus = async (c: Context) => {
 			return c.json(errorResponse("Application not found"), 404)
 		}
 
-		// If accepted, update ad request status to in_progress
 		if (status === "accepted") {
 			await db
 				.update(adRequestsTable)
 				.set({ status: "in_progress", updatedAt: new Date() })
-				.where(eq(adRequestsTable.id, Number.parseInt(id, 10)))
+				.where(eq(adRequestsTable.id, id))
 		}
 
 		return c.json(successResponse(updated))
@@ -462,4 +406,17 @@ export const handleUpdateApplicationStatus = async (c: Context) => {
 		console.error("Error updating application status:", error)
 		return c.json(errorResponse("Failed to update application status", error), 500)
 	}
+}
+
+const assertOwnership = (
+	advertiserId: number,
+	userTid: number,
+	action: string
+): { message: string | undefined } => {
+	if (advertiserId !== userTid) {
+		return {
+			message: `You can only ${action} your own ad requests`,
+		}
+	}
+	return { message: undefined }
 }

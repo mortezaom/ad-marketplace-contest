@@ -30,3 +30,13 @@ export const ApplyToAdRequestSchema = z.object({
 export type CreateAdRequestParam = z.infer<typeof CreateAdRequestSchema>
 export type UpdateAdRequestParam = z.infer<typeof UpdateAdRequestSchema>
 export type ApplyToAdRequestParam = z.infer<typeof ApplyToAdRequestSchema>
+
+export const GetAdRequestsQuerySchema = z.object({
+	status: z.enum(["open", "in_progress", "completed", "cancelled"]).optional(),
+	minBudget: z.coerce.number().int().positive().optional(),
+	maxBudget: z.coerce.number().int().positive().optional(),
+	language: z.string().min(1).optional(),
+	adFormat: z.enum(["post", "story", "forward"]).optional(),
+})
+
+export type GetAdRequestsQuery = z.infer<typeof GetAdRequestsQuerySchema>

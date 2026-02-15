@@ -3,10 +3,12 @@
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
-import { H3 } from "@/components/customized/typography"
+import { H4 } from "@/components/customized/typography"
+import { DatePickerComponent } from "@/components/date-picker"
 import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
 import {
 	Select,
 	SelectContent,
@@ -15,8 +17,10 @@ import {
 	SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { createAdRequest } from "@/lib/http"
+import { request } from "@/lib/http"
 import { setBackButton } from "@/lib/tma"
+
+const languageOptions = ["English", "Russian", "Persian", "Spanish", "Arabic"]
 
 export default function NewAdPage() {
 	const router = useRouter()
@@ -26,8 +30,8 @@ export default function NewAdPage() {
 	const [description, setDescription] = useState("")
 	const [budget, setBudget] = useState("")
 	const [minSubscribers, setMinSubscribers] = useState("")
-	const [language, setLanguage] = useState("")
-	const [deadline, setDeadline] = useState("")
+	const [language, setLanguage] = useState("None")
+	const [deadline, setDeadline] = useState<Date | undefined>()
 	const [adFormat, setAdFormat] = useState<"post" | "story" | "forward">("post")
 	const [contentGuidelines, setContentGuidelines] = useState("")
 
@@ -45,6 +49,10 @@ export default function NewAdPage() {
 		if (!budget || Number.parseInt(budget, 10) <= 0) {
 			newErrors.budget = "Invalid"
 		}
+
+		if (!deadline) {
+			newErrors.deadline = "Required"
+		}
 		setErrors(newErrors)
 		return Object.keys(newErrors).length === 0
 	}
@@ -55,15 +63,17 @@ export default function NewAdPage() {
 		}
 
 		setLoading(true)
-		const res = await createAdRequest({
-			title: title.trim(),
-			description: description.trim() || undefined,
-			budget: Number.parseInt(budget, 10),
-			minSubscribers: minSubscribers ? Number.parseInt(minSubscribers, 10) : undefined,
-			language: language.trim() || undefined,
-			deadline: deadline || undefined,
-			adFormat,
-			contentGuidelines: contentGuidelines.trim() || undefined,
+		const res = await request("ads", {
+			json: {
+				title: title.trim(),
+				description: description.trim() || undefined,
+				budget: Number.parseInt(budget, 10),
+				minSubscribers: minSubscribers ? Number.parseInt(minSubscribers, 10) : undefined,
+				language: language.trim() || undefined,
+				deadline: deadline?.toISOString() || undefined,
+				adFormat,
+				contentGuidelines: contentGuidelines.trim() || undefined,
+			},
 		})
 		setLoading(false)
 
@@ -76,10 +86,9 @@ export default function NewAdPage() {
 	}
 
 	return (
-		<main className="flex min-h-screen w-full flex-col gap-3 overflow-y-auto px-4 py-2">
-			<H3>Create Ad</H3>
+		<main className="flex min-h-screen w-full flex-col gap-5 overflow-y-auto px-4 py-2">
+			<H4 className="mb-3">Create Ad</H4>
 
-			{/* Title */}
 			<Field>
 				<FieldLabel>Title *</FieldLabel>
 				<Input
@@ -90,7 +99,6 @@ export default function NewAdPage() {
 				{errors.title && <FieldError>{errors.title}</FieldError>}
 			</Field>
 
-			{/* Description */}
 			<Field>
 				<FieldLabel>Description</FieldLabel>
 				<Textarea
@@ -101,23 +109,22 @@ export default function NewAdPage() {
 				/>
 			</Field>
 
-			{/* Budget */}
 			<Field>
 				<FieldLabel>Budget (TON) *</FieldLabel>
-				<div className="flex items-center gap-2">
-					<span className="text-lg">TON</span>
-					<Input
+				<InputGroup>
+					<InputGroupInput
 						className="flex-1"
+						min={0}
 						onChange={(e) => setBudget(e.target.value)}
 						placeholder="100"
 						type="number"
 						value={budget}
 					/>
-				</div>
+					<InputGroupAddon align="inline-end">TON</InputGroupAddon>
+				</InputGroup>
 				{errors.budget && <FieldError>{errors.budget}</FieldError>}
 			</Field>
 
-			{/* Format */}
 			<Field>
 				<FieldLabel>Format</FieldLabel>
 				<Select
@@ -128,14 +135,18 @@ export default function NewAdPage() {
 						<SelectValue placeholder="Story" />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="post">Post</SelectItem>
-						<SelectItem value="story">Story (Soon)</SelectItem>
-						<SelectItem value="forward">Forward (Soon)</SelectItem>
+						<SelectItem className="py-2" value="post">
+							Post
+						</SelectItem>
+						<SelectItem className="py-2" disabled value="story">
+							Story (Soon)
+						</SelectItem>
+						<SelectItem disabled value="forward">
+							Forward (Soon)
+						</SelectItem>
 					</SelectContent>
 				</Select>
 			</Field>
-
-			{/* Min Subscribers */}
 			<Field>
 				<FieldLabel>Min. Subscribers</FieldLabel>
 				<Input
@@ -146,23 +157,34 @@ export default function NewAdPage() {
 				/>
 			</Field>
 
-			{/* Language */}
 			<Field>
 				<FieldLabel>Language</FieldLabel>
-				<Input
-					onChange={(e) => setLanguage(e.target.value)}
-					placeholder="English, Persian..."
-					value={language}
-				/>
+				<Select onValueChange={(v) => setLanguage(v)} value={language}>
+					<SelectTrigger className="h-10">
+						<SelectValue placeholder="Select Prefered Language" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem className="py-2" value="None">
+							None
+						</SelectItem>
+						{languageOptions.map((l) => {
+							return (
+								<SelectItem className="py-2" key={`lang-${l}`} value={l}>
+									{l}
+								</SelectItem>
+							)
+						})}
+					</SelectContent>
+				</Select>
 			</Field>
 
-			{/* Deadline */}
 			<Field>
-				<FieldLabel>Deadline</FieldLabel>
-				<Input onChange={(e) => setDeadline(e.target.value)} type="date" value={deadline} />
+				<FieldLabel>Post Date</FieldLabel>
+				<DatePickerComponent onChange={(e) => setDeadline(e)} value={deadline} />
+
+				{errors.deadline && <FieldError>{errors.deadline}</FieldError>}
 			</Field>
 
-			{/* Content Guidelines */}
 			<Field>
 				<FieldLabel>Content Guidelines</FieldLabel>
 				<Textarea
