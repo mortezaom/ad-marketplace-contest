@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { request } from "@/lib/http"
 import { setBackButton } from "@/lib/tma"
+import { transformStatus } from "@/lib/utils"
 
 export interface AdRequestDetail {
 	id: number
@@ -260,7 +261,7 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 												: "secondary"
 									}
 								>
-									{app.status}
+									{transformStatus(app.status)}
 								</Badge>
 							</button>
 						))}

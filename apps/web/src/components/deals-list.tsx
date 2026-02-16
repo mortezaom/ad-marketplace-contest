@@ -7,6 +7,7 @@ import { H4, P } from "@/components/customized/typography"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { request } from "@/lib/http"
+import { transformStatus } from "@/lib/utils"
 import type { DealListItem } from "@/types/deals"
 
 const statusVariants: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
@@ -17,10 +18,6 @@ const statusVariants: Record<string, "default" | "secondary" | "outline" | "dest
 	posted: "default",
 	completed: "outline",
 	cancelled: "destructive",
-}
-
-const formatStatus = (status: string) => {
-	return status.replace(/_/g, " ")
 }
 
 export function DealsList() {
@@ -87,7 +84,7 @@ export function DealsList() {
 					<div className="flex w-full items-center justify-between">
 						<span className="font-medium">{deal.adRequest.title}</span>
 						<Badge variant={statusVariants[deal.status] || "outline"}>
-							{formatStatus(deal.status)}
+							{transformStatus(deal.status)}
 						</Badge>
 					</div>
 					<div className="mt-2 flex items-center gap-4 text-muted-foreground text-sm">
@@ -99,8 +96,8 @@ export function DealsList() {
 						<Badge className="text-xs capitalize" variant="outline">
 							{deal.adFormat}
 						</Badge>
-						<Badge className="text-xs capitalize" variant="secondary">
-							{deal.userRole === "advertiser" ? "You are advertiser" : "You are channel owner"}
+						<Badge className="text-xs capitalize" variant="link">
+							{deal.userRole === "advertiser" ? "Owner" : "Applied"}
 						</Badge>
 					</div>
 				</button>

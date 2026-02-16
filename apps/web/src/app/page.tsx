@@ -90,7 +90,7 @@ export default function HomePage() {
 				/>
 				<H4>Welcome to MiniAd, Where advertising Meets Simplicity!</H4>
 			</div>
-			<Tabs className="mt-4 w-full" defaultValue="deals">
+			<Tabs className="mt-4 w-full" defaultValue="ads">
 				<TabsList className="w-full">
 					<TabsTrigger value="ads">Advertisements</TabsTrigger>
 					<TabsTrigger value="channels">Channels</TabsTrigger>

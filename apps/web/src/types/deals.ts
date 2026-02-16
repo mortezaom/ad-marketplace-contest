@@ -63,7 +63,6 @@ export interface CreativeDetail {
 	content: string
 	mediaUrls: string[]
 	status: CreativeStatus
-	reviewNote: string | null
 	submittedAt: string | null
 	reviewedAt: string | null
 	createdAt: string

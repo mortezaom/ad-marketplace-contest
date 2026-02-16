@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { CreativeForm } from "@/components/creative-form"
-import { H3, H4, P } from "@/components/customized/typography"
+import { H4, P } from "@/components/customized/typography"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
@@ -37,21 +37,23 @@ export default function CreativeEditorPage({ params }: CreativeEditorProps) {
 			return
 		}
 
-		const loadData = async () => {
-			setLoading(true)
-			const res = await request<DealDetail>(`deals/${resolvedId}`)
-			setLoading(false)
-
-			if (res.ok) {
-				setDeal(res.data)
-			} else {
-				toast.error("Failed to load deal")
-				router.back()
-			}
-		}
-
 		loadData()
 	}, [resolvedId, router])
+
+	const isApproved = deal?.creative?.status !== "approved"
+
+	const loadData = async () => {
+		setLoading(true)
+		const res = await request<DealDetail>(`deals/${resolvedId}`)
+		setLoading(false)
+
+		if (res.ok) {
+			setDeal(res.data)
+		} else {
+			toast.error("Failed to load deal")
+			router.back()
+		}
+	}
 
 	if (loading) {
 		return (
@@ -69,7 +71,7 @@ export default function CreativeEditorPage({ params }: CreativeEditorProps) {
 		)
 	}
 
-	if (deal.userRole !== "channel_owner") {
+	if (deal.userRole !== "channel_owner" && isApproved) {
 		return (
 			<main className="flex min-h-screen w-full items-center justify-center">
 				<H4>Only channel owners can edit creatives</H4>
@@ -79,7 +81,7 @@ export default function CreativeEditorPage({ params }: CreativeEditorProps) {
 
 	return (
 		<main className="flex min-h-screen w-full flex-col gap-4 overflow-y-auto px-4 py-2">
-			<H3>Create Draft</H3>
+			<H4>{deal.creative ? 'View' : 'Create'} Draft</H4>
 
 			<div className="rounded-lg bg-muted/30 p-3">
 				<div className="flex items-center justify-between">
@@ -89,7 +91,8 @@ export default function CreativeEditorPage({ params }: CreativeEditorProps) {
 					</Badge>
 				</div>
 				<P className="mt-1 text-muted-foreground text-sm">
-					{deal.channel.title} • {deal.agreedPrice.toLocaleString()} TON
+					<span>Draft for: </span>
+					<span className="font-semibold">{deal.channel.title} </span>
 				</P>
 			</div>
 
@@ -99,13 +102,13 @@ export default function CreativeEditorPage({ params }: CreativeEditorProps) {
 					<P className="text-muted-foreground text-sm">{deal.adRequest.contentGuidelines}</P>
 				</div>
 			)}
-
-			<Separator />
-			<CreativeForm
-				creative={deal.creative}
-				dealId={deal.id}
-				initialContent={deal.creative?.content || ""}
-			/>
+					<Separator />
+					<CreativeForm
+						creative={deal.creative}
+						dealId={deal.id}
+						initialContent={deal.creative?.content || ""}
+					/>
+			
 		</main>
 	)
 }

@@ -4,13 +4,13 @@ import { Edit } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
-import { H4, P } from "@/components/customized/typography"
+import { H5, P } from "@/components/customized/typography"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { request } from "@/lib/http"
-import { creativeStatusVariants, formatStatus } from "@/lib/utils"
+import { creativeStatusVariants, transformStatus } from "@/lib/utils"
 import type { DealDetail } from "@/types/deals"
 
 type CreativeAction = "submitted" | "approved" | "revision_requested"
@@ -28,11 +28,8 @@ export function DealCreativeSection({ deal, isAdvertiser, onUpdate }: DealCreati
 	const { creative } = deal
 	const canSubmit = !isAdvertiser && creative?.status === "draft"
 	const canApprove = isAdvertiser && creative?.status === "submitted"
-	const canEdit = isAdvertiser
-		? creative?.status === "submitted"
-		: creative?.status === "draft" || !creative
 
-	const handleAction = async (action: CreativeAction, reviewNote?: string) => {
+	const handleAction = async (action: CreativeAction) => {
 		if (!creative) {
 			return
 		}
@@ -42,7 +39,6 @@ export function DealCreativeSection({ deal, isAdvertiser, onUpdate }: DealCreati
 			method: "PATCH",
 			json: {
 				status: action,
-				...(reviewNote && { reviewNote }),
 			},
 		})
 		setActionLoading(false)
@@ -60,26 +56,20 @@ export function DealCreativeSection({ deal, isAdvertiser, onUpdate }: DealCreati
 	return (
 		<>
 			<div className="flex flex-col gap-3">
-				<H4>Creative (Draft)</H4>
+				<H5>Creative (Draft)</H5>
 
 				{creative ? (
 					<div className="rounded-lg border p-4">
 						<div className="flex items-center justify-between">
 							<Badge variant={creativeStatusVariants[creative.status] || "outline"}>
-								{formatStatus(creative.status)}
+								{transformStatus(creative.status)}
 							</Badge>
 							<span className="text-muted-foreground text-xs">Version {creative.version}</span>
 						</div>
 
 						<div className="mt-3 whitespace-pre-wrap text-sm">{creative.content}</div>
 
-						{creative.reviewNote && (
-							<div className="mt-3 rounded bg-muted/50 p-2 text-sm">
-								<span className="font-semibold">Review Note:</span> {creative.reviewNote}
-							</div>
-						)}
-
-						{canSubmit && (
+						{canSubmit && !isAdvertiser && (
 							<div className="mt-4 flex gap-2">
 								<Button
 									className="flex-1"
@@ -90,7 +80,7 @@ export function DealCreativeSection({ deal, isAdvertiser, onUpdate }: DealCreati
 								</Button>
 								<Button disabled={actionLoading} onClick={goToCreative} variant="outline">
 									<Edit className="mr-2 h-4 w-4" />
-									Edit
+									New
 								</Button>
 							</div>
 						)}
@@ -107,7 +97,7 @@ export function DealCreativeSection({ deal, isAdvertiser, onUpdate }: DealCreati
 								<Button
 									className="flex-1"
 									disabled={actionLoading}
-									onClick={() => handleAction("revision_requested", "Please revise and resubmit")}
+									onClick={() => handleAction("revision_requested")}
 									variant="destructive"
 								>
 									{actionLoading ? <Spinner className="h-4 w-4" /> : "Request Revision"}
@@ -115,7 +105,7 @@ export function DealCreativeSection({ deal, isAdvertiser, onUpdate }: DealCreati
 							</div>
 						)}
 
-						{!(canEdit || canSubmit || canApprove) && (
+						{!(isAdvertiser || canSubmit) && (
 							<Button
 								className="mt-4 w-full"
 								disabled={actionLoading}
@@ -123,15 +113,26 @@ export function DealCreativeSection({ deal, isAdvertiser, onUpdate }: DealCreati
 								variant="outline"
 							>
 								<Edit className="mr-2 h-4 w-4" />
-								{creative.status === "approved" ? "View Creative" : "View/Edit Creative"}
+								{creative.status === "approved" ? "View Creative" : "Revise Creative"}
+							</Button>
+						)}
+						{(isAdvertiser && creative?.status === "approved") && (
+							<Button
+								className="mt-4 w-full"
+								disabled={actionLoading}
+								onClick={goToCreative}
+								variant="outline"
+							>
+								<Edit className="mr-2 h-4 w-4" />
+								{creative.status === "approved" ? "View Creative" : "Revise Creative"}
 							</Button>
 						)}
 					</div>
 				) : (
-					<div className="rounded-lg border border-dashed p-6 text-center">
-						<P className="text-muted-foreground">No creative submitted yet</P>
+					<div className="rounded-lg border border-dashed p-8 text-center">
+						<P className="text-muted-foreground text-sm">No creative submitted yet</P>
 						{!isAdvertiser && (
-							<Button className="mt-3" onClick={goToCreative}>
+							<Button className="mt-3" onClick={goToCreative} size={"sm"}>
 								Create Draft
 							</Button>
 						)}

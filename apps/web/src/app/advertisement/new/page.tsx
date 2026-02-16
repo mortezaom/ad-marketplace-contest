@@ -16,6 +16,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select"
+import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { request } from "@/lib/http"
 import { setBackButton } from "@/lib/tma"
@@ -46,7 +47,7 @@ export default function NewAdPage() {
 		if (!title.trim()) {
 			newErrors.title = "Required"
 		}
-		if (!budget || Number.parseInt(budget, 10) <= 0) {
+		if (!budget || Number.parseFloat(budget) <= 0) {
 			newErrors.budget = "Invalid"
 		}
 
@@ -64,10 +65,11 @@ export default function NewAdPage() {
 
 		setLoading(true)
 		const res = await request("ads", {
+			method: "post",
 			json: {
 				title: title.trim(),
 				description: description.trim() || undefined,
-				budget: Number.parseInt(budget, 10),
+				budget: Number.parseFloat(budget),
 				minSubscribers: minSubscribers ? Number.parseInt(minSubscribers, 10) : undefined,
 				language: language.trim() || undefined,
 				deadline: deadline?.toISOString() || undefined,
@@ -92,6 +94,7 @@ export default function NewAdPage() {
 			<Field>
 				<FieldLabel>Title *</FieldLabel>
 				<Input
+					className="h-10 text-sm"
 					onChange={(e) => setTitle(e.target.value)}
 					placeholder="Campaign name"
 					value={title}
@@ -102,6 +105,7 @@ export default function NewAdPage() {
 			<Field>
 				<FieldLabel>Description</FieldLabel>
 				<Textarea
+					className="min-h-20 text-sm"
 					onChange={(e) => setDescription(e.target.value)}
 					placeholder="What is your campaign about?"
 					rows={2}
@@ -111,9 +115,9 @@ export default function NewAdPage() {
 
 			<Field>
 				<FieldLabel>Budget (TON) *</FieldLabel>
-				<InputGroup>
+				<InputGroup className="h-10 flex-1 text-sm">
 					<InputGroupInput
-						className="flex-1"
+						className="text-sm"
 						min={0}
 						onChange={(e) => setBudget(e.target.value)}
 						placeholder="100"
@@ -131,7 +135,7 @@ export default function NewAdPage() {
 					onValueChange={(v) => setAdFormat(v as "post" | "story" | "forward")}
 					value={adFormat}
 				>
-					<SelectTrigger className="h-10">
+					<SelectTrigger className="h-10 flex-1">
 						<SelectValue placeholder="Story" />
 					</SelectTrigger>
 					<SelectContent>
@@ -150,6 +154,7 @@ export default function NewAdPage() {
 			<Field>
 				<FieldLabel>Min. Subscribers</FieldLabel>
 				<Input
+					className="h-9 text-sm"
 					onChange={(e) => setMinSubscribers(e.target.value)}
 					placeholder="0"
 					type="number"
@@ -158,9 +163,9 @@ export default function NewAdPage() {
 			</Field>
 
 			<Field>
-				<FieldLabel>Language</FieldLabel>
+				<FieldLabel>Audience Language</FieldLabel>
 				<Select onValueChange={(v) => setLanguage(v)} value={language}>
-					<SelectTrigger className="h-10">
+					<SelectTrigger className="h-10 flex-1 text-sm">
 						<SelectValue placeholder="Select Prefered Language" />
 					</SelectTrigger>
 					<SelectContent>
@@ -180,7 +185,12 @@ export default function NewAdPage() {
 
 			<Field>
 				<FieldLabel>Post Date</FieldLabel>
-				<DatePickerComponent onChange={(e) => setDeadline(e)} value={deadline} />
+				<DatePickerComponent
+					className="h-10 text-sm"
+					onChange={(e) => setDeadline(e)}
+					value={deadline}
+					withTime
+				/>
 
 				{errors.deadline && <FieldError>{errors.deadline}</FieldError>}
 			</Field>
@@ -188,6 +198,7 @@ export default function NewAdPage() {
 			<Field>
 				<FieldLabel>Content Guidelines</FieldLabel>
 				<Textarea
+					className="min-h-20 flex-1 text-sm"
 					onChange={(e) => setContentGuidelines(e.target.value)}
 					placeholder="What should the post contain?"
 					rows={2}
@@ -196,7 +207,8 @@ export default function NewAdPage() {
 			</Field>
 
 			<Button className="mt-2 w-full" disabled={loading} onClick={handleSubmit}>
-				{loading ? "Creating..." : "Create Ad"}
+				Submit Promotion
+				{loading && <Spinner data-icon="inline-start" />}
 			</Button>
 		</main>
 	)

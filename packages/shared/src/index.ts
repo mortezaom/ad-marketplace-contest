@@ -189,7 +189,6 @@ export interface CreativeModel {
 	content: string
 	mediaUrls: string[]
 	status: CreativeStatus
-	reviewNote: string | null
 	submittedAt: Date | null
 	reviewedAt: Date | null
 	createdAt: Date
@@ -205,7 +204,6 @@ export interface UpdateCreativePayload {
 	content?: string
 	mediaUrls?: string[]
 	status?: CreativeStatus
-	reviewNote?: string
 }
 
 // ─── Feedback Types ──────────────────────────────────────────────────────

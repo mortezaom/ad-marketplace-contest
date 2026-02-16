@@ -46,7 +46,7 @@ export function H3({
 	className?: string
 }>) {
 	return (
-		<h1 className={cn("scroll-m-20 font-semibold text-2xl tracking-tight", className)}>
+		<h1 className={cn("scroll-m-20 font-semibold text-[1.3rem] tracking-tight", className)}>
 			{children}
 		</h1>
 	)
@@ -66,6 +66,20 @@ export function H4({
 	)
 }
 
+export function H5({
+	children,
+	className,
+}: Readonly<{
+	children: React.ReactNode
+	className?: string
+}>) {
+	return (
+		<h1 className={cn("scroll-m-20 font-semibold text-lg tracking-tight", className)}>
+			{children}
+		</h1>
+	)
+}
+
 export function P({
 	children,
 	className,
@@ -73,5 +87,5 @@ export function P({
 	children: React.ReactNode
 	className?: string
 }>) {
-	return <h1 className={cn("not-first:mt-3 leading-5", className)}>{children}</h1>
+	return <h1 className={cn("not-first:mt-1 leading-5", className)}>{children}</h1>
 }

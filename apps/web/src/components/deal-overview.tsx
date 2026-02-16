@@ -2,13 +2,13 @@
 
 import { openTelegramLink } from "@telegram-apps/sdk-react"
 import { LinkIcon, MessageCircle } from "lucide-react"
-import { H3, H4, P } from "@/components/customized/typography"
+import { H4, H5, P } from "@/components/customized/typography"
 import { FeedbackSheet } from "@/components/feedback-sheet"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { formatDate, formatStatus, statusVariants } from "@/lib/utils"
+import { formatDate, statusVariants, transformStatus } from "@/lib/utils"
 import type { DealDetail } from "@/types/deals"
 
 interface DealOverviewProps {
@@ -27,8 +27,6 @@ export function DealOverview({ deal, isAdvertiser }: DealOverviewProps) {
 			<AdRequestInfo deal={deal} />
 			<Separator />
 
-			{!isAdvertiser && <AdvertiserInfo deal={deal} />}
-
 			<CommunicationSection dealId={deal.id} />
 
 			{deal.status === "awaiting_payment" && <PaymentSection />}
@@ -40,12 +38,14 @@ function DealHeader({ deal }: { deal: DealDetail }) {
 	return (
 		<div className="flex items-start justify-between">
 			<div>
-				<H3>{deal.adRequest.title}</H3>
+				<H4>{deal.adRequest.title}</H4>
 				<P className="text-muted-foreground text-sm">
 					Created {new Date(deal.createdAt).toLocaleDateString()}
 				</P>
 			</div>
-			<Badge variant={statusVariants[deal.status] || "outline"}>{formatStatus(deal.status)}</Badge>
+			<Badge variant={statusVariants[deal.status] || "outline"}>
+				{transformStatus(deal.status)}
+			</Badge>
 		</div>
 	)
 }
@@ -80,7 +80,7 @@ function ChannelInfo({ deal }: { deal: DealDetail }) {
 
 function DealDetails({ deal, isAdvertiser }: { deal: DealDetail; isAdvertiser: boolean }) {
 	return (
-		<div className="grid grid-cols-2 gap-4">
+		<div className="mb-4 grid grid-cols-2 gap-4 text-sm">
 			<div>
 				<span className="text-muted-foreground text-sm">Format</span>
 				<P className="font-semibold capitalize">{deal.adFormat}</P>
@@ -93,11 +93,9 @@ function DealDetails({ deal, isAdvertiser }: { deal: DealDetail; isAdvertiser: b
 				<span className="text-muted-foreground text-sm">Scheduled</span>
 				<P>{formatDate(deal.scheduledPostAt)}</P>
 			</div>
-			<div>
-				<span className="text-muted-foreground text-sm">Your Role</span>
-				<Badge className="capitalize" variant={isAdvertiser ? "default" : "secondary"}>
-					{isAdvertiser ? "Advertiser" : "Channel Owner"}
-				</Badge>
+			<div className="flex flex-col gap-1">
+				<span className="text-muted-foreground text-sm">Role</span>
+				<Badge variant="secondary">{isAdvertiser ? "Advertiser" : "Channel Owner"}</Badge>
 			</div>
 		</div>
 	)
@@ -126,32 +124,10 @@ function AdRequestInfo({ deal }: { deal: DealDetail }) {
 	)
 }
 
-function AdvertiserInfo({ deal }: { deal: DealDetail }) {
-	return (
-		<div className="flex flex-col gap-2">
-			<H4>Advertiser</H4>
-			<div className="flex items-center gap-3 rounded-lg border p-3">
-				<Avatar className="h-10 w-10">
-					<AvatarImage src={deal.advertiser.photo_url || undefined} />
-					<AvatarFallback>{deal.advertiser.firstName.charAt(0).toUpperCase()}</AvatarFallback>
-				</Avatar>
-				<div className="flex flex-col">
-					<span className="font-medium">
-						{deal.advertiser.firstName} {deal.advertiser.lastName || ""}
-					</span>
-					{deal.advertiser.username && (
-						<span className="text-muted-foreground text-xs">@{deal.advertiser.username}</span>
-					)}
-				</div>
-			</div>
-		</div>
-	)
-}
-
 function CommunicationSection({ dealId }: { dealId: number }) {
 	return (
 		<div className="flex flex-col gap-2">
-			<H4>Communication</H4>
+			<H5>Communication</H5>
 			<FeedbackSheet
 				dealId={dealId}
 				trigger={

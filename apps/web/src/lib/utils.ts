@@ -61,8 +61,6 @@ export const creativeStatusVariants: Record<string, BadgeVariant> = {
 	revision_requested: "destructive",
 }
 
-export const formatStatus = (status: string) => status.replace(/_/g, " ")
-
 export const formatDate = (date: string | null) =>
 	date
 		? new Date(date).toLocaleDateString("en-US", {
@@ -71,3 +69,13 @@ export const formatDate = (date: string | null) =>
 				year: "numeric",
 			})
 		: "Not scheduled"
+
+export const transformStatus = (status: string) => {
+	return status
+		.split("_")
+		.map((s) => {
+			return `${s.charAt(0).toUpperCase()}${s.substring(1)}`
+		})
+		.join(" ")
+		.toString()
+}

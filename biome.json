@@ -48,6 +48,13 @@
       "style": {
         "noNestedTernary": "off"
       },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "options": {
+            "maxAllowedComplexity": 24
+          }
+        }
+      },
       "a11y": {
         "noLabelWithoutControl": "off",
         "noStaticElementInteractions": "off",

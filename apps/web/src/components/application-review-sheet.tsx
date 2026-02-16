@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Spinner } from "@/components/ui/spinner"
 import { getChannelPhoto, request } from "@/lib/http"
+import { transformStatus } from "@/lib/utils"
 
 interface ApplicationReviewSheetProps {
 	application: Application | null
@@ -91,7 +92,7 @@ export function ApplicationReviewSheet({
 									className="ml-auto font-normal capitalize"
 									variant={application.status === "accepted" ? "default" : "destructive"}
 								>
-									{application.status}
+									{transformStatus(application.status)}
 								</Badge>
 							)}
 						</div>
