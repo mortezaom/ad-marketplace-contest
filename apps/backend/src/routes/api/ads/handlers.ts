@@ -7,6 +7,7 @@ import {
 	adRequestsTable,
 	channelAdminsTable,
 	channelsTable,
+	dealsTable,
 } from "@/db/schema"
 import { parseBody } from "@/utils/helpers"
 import { errorResponse, successResponse } from "@/utils/responses"
@@ -410,6 +411,18 @@ export const handleUpdateApplicationStatus = async (c: Context) => {
 				.update(adRequestsTable)
 				.set({ status: "in_progress", updatedAt: new Date() })
 				.where(eq(adRequestsTable.id, id))
+
+			await db
+				.insert(dealsTable)
+				.values({
+					adFormat: adRequest.adFormat,
+					advertiserId: adRequest.advertiserId,
+					agreedPrice: adRequest.budget,
+					applicationId: updated.id,
+					channelId: updated.channelId,
+					scheduledPostAt: adRequest.deadline,
+				})
+				.execute()
 		}
 
 		return c.json(successResponse(updated))

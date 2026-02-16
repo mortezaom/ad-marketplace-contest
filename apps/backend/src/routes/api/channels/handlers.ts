@@ -93,9 +93,8 @@ export const handleGetChannels = async (c: Context) => {
 		}))
 
 		return c.json(successResponse(channels))
-	} catch (error) {
-		console.error(error)
-		return c.json(errorResponse("Failed to fetch channels"), 500)
+	} catch {
+		return c.json(successResponse([]))
 	}
 }
 

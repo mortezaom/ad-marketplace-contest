@@ -8,6 +8,7 @@ import { useEffect, useState } from "react"
 import { AdList } from "@/components/ad-list"
 import { ChannelsCatalog } from "@/components/channels-catalog"
 import { H4 } from "@/components/customized/typography"
+import { DealsList } from "@/components/deals-list"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
@@ -33,7 +34,7 @@ export default function HomePage() {
 
 	const onCloseInfo = (value: boolean) => {
 		// minimize localstorage calls
-		if (value) {
+		if (!value) {
 			authStorage.setClosedIntro()
 		}
 		setInfoOpen(value)
@@ -89,16 +90,20 @@ export default function HomePage() {
 				/>
 				<H4>Welcome to MiniAd, Where advertising Meets Simplicity!</H4>
 			</div>
-			<Tabs className="mt-4 w-full" defaultValue="ads">
+			<Tabs className="mt-4 w-full" defaultValue="deals">
 				<TabsList className="w-full">
 					<TabsTrigger value="ads">Advertisements</TabsTrigger>
 					<TabsTrigger value="channels">Channels</TabsTrigger>
+					<TabsTrigger value="deals">Deals</TabsTrigger>
 				</TabsList>
 				<TabsContent value="ads">
 					<AdList />
 				</TabsContent>
 				<TabsContent value="channels">
 					<ChannelsCatalog />
+				</TabsContent>
+				<TabsContent value="deals">
+					<DealsList />
 				</TabsContent>
 			</Tabs>
 		</main>

@@ -115,3 +115,101 @@ export interface UpdateAdRequestPayload {
 	contentGuidelines?: string
 	status?: AdRequestStatus
 }
+
+// ─── Deal Types ──────────────────────────────────────────────────────
+
+export type DealStatus =
+	| "awaiting_creative"
+	| "creative_submitted"
+	| "awaiting_payment"
+	| "scheduled"
+	| "posted"
+	| "completed"
+	| "cancelled"
+
+export interface DealModel {
+	id: number
+	applicationId: number
+	channelId: number
+	advertiserId: number
+	adFormat: AdFormat
+	agreedPrice: number
+	status: DealStatus
+	scheduledPostAt: Date | null
+	minPostDurationHours: number
+	completedAt: Date | null
+	cancelledAt: Date | null
+	createdAt: Date
+	updatedAt: Date
+}
+
+export interface DealWithDetails extends DealModel {
+	channel: {
+		id: number
+		title: string | null
+		tgId: string
+		tgLink: string
+		subCount: number
+		avgPostReach: number
+	}
+	adRequest: {
+		id: number
+		title: string
+		description: string | null
+	}
+	application: {
+		id: number
+		status: AdApplicationStatus
+	}
+}
+
+export interface CreateDealPayload {
+	applicationId: number
+	channelId: number
+	adFormat: AdFormat
+	agreedPrice: number
+	scheduledPostAt?: Date
+	minPostDurationHours?: number
+}
+
+export interface UpdateDealPayload {
+	status?: DealStatus
+	scheduledPostAt?: Date
+	minPostDurationHours?: number
+}
+
+// ─── Creative Types ──────────────────────────────────────────────────────
+
+export type CreativeStatus = "draft" | "submitted" | "approved" | "revision_requested"
+
+export interface CreativeModel {
+	id: number
+	dealId: number
+	version: number
+	content: string
+	mediaUrls: string[]
+	status: CreativeStatus
+	reviewNote: string | null
+	submittedAt: Date | null
+	reviewedAt: Date | null
+	createdAt: Date
+}
+
+export interface CreateCreativePayload {
+	dealId: number
+	content: string
+	mediaUrls?: string[]
+}
+
+export interface UpdateCreativePayload {
+	content?: string
+	mediaUrls?: string[]
+	status?: CreativeStatus
+	reviewNote?: string
+}
+
+// ─── Feedback Types ──────────────────────────────────────────────────────
+
+export interface SendFeedbackPayload {
+	message: string
+}

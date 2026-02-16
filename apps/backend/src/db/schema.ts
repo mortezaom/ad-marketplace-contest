@@ -3,6 +3,7 @@ import {
 	boolean,
 	decimal,
 	integer,
+	jsonb,
 	pgEnum,
 	pgTable,
 	text,
@@ -10,6 +11,8 @@ import {
 	uuid,
 	varchar,
 } from "drizzle-orm/pg-core"
+
+// ─── Users ──────────────────────────────────────────────────────
 
 export const usersTable = pgTable("users", {
 	id: integer().primaryKey().generatedAlwaysAsIdentity(),
@@ -22,6 +25,8 @@ export const usersTable = pgTable("users", {
 	updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
+// ─── Telegram Sessions ─────────────────────────────────────────
+
 export const tgSessionType = pgEnum("tg_session_type", ["stats_agent"])
 export const tgSessionStatus = pgEnum("tg_session_status", ["active", "disabled"])
 
@@ -33,16 +38,14 @@ export const tgLoginStatus = pgEnum("tg_login_status", [
 	"expired",
 	"canceled",
 ])
+
 export const tgLoginFlows = pgTable("tg_login_flows", {
 	id: uuid("id").primaryKey().defaultRandom(),
 	mode: tgLoginMode("mode").notNull(),
 	status: tgLoginStatus("status").notNull(),
-
 	storageKey: text("storage_key").notNull().unique(),
-
 	phone: text("phone"),
 	phoneCodeHash: text("phone_code_hash"),
-
 	expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
 	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -53,9 +56,7 @@ export const tgSessions = pgTable("tg_sessions", {
 	type: tgSessionType("type").notNull(),
 	status: tgSessionStatus("status").notNull().default("active"),
 	label: text("label"),
-
 	storageKey: text("storage_key").notNull().unique(),
-
 	tgUserId: text("tg_user_id").notNull(),
 	tgUsername: text("tg_username"),
 	tgFirstName: text("tg_first_name").notNull(),
@@ -67,18 +68,14 @@ export const tgSessions = pgTable("tg_sessions", {
 
 export type AccountType = typeof tgSessions.$inferSelect
 
+// ─── Channels ───────────────────────────────────────────────────
+
 export const channelsTable = pgTable("channels", {
 	id: integer().primaryKey().generatedAlwaysAsIdentity(),
-	tgId: bigint("tg_id", {
-		mode: "bigint",
-	})
-		.notNull()
-		.unique(),
+	tgId: bigint("tg_id", { mode: "bigint" }).notNull().unique(),
 	accessHash: text("access_hash").notNull(),
 	title: text("title"),
-	ownerId: bigint("owner_id", {
-		mode: "number",
-	}),
+	ownerId: bigint("owner_id", { mode: "number" }),
 	tgLink: text("tg_link").notNull(),
 	subCount: integer("sub_count").default(0),
 	avgPostReach: integer("avg_post_reach").default(0),
@@ -89,6 +86,8 @@ export const channelsTable = pgTable("channels", {
 	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
 
+// ─── Channel Admins ─────────────────────────────────────────────
+
 export const adminRoleEnum = pgEnum("admin_role", ["owner", "admin"])
 export const adminSourceEnum = pgEnum("admin_source", ["telegram", "invite"])
 
@@ -97,15 +96,14 @@ export const channelAdminsTable = pgTable("channel_admins", {
 	channelId: integer("channel_id")
 		.notNull()
 		.references(() => channelsTable.id, { onDelete: "cascade" }),
-	tgUserId: bigint("tg_user_id", {
-		mode: "number",
-	}).notNull(),
+	tgUserId: bigint("tg_user_id", { mode: "number" }).notNull(),
 	role: adminRoleEnum("role").notNull().default("owner"),
 	addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow(),
 	source: adminSourceEnum("source").notNull().default("telegram"),
 })
 
-// Ad Enums
+// ─── Ad Requests & Applications ─────────────────────────────────
+
 export const adFormatEnum = pgEnum("ad_format", ["post", "story", "forward"])
 export const adRequestStatusEnum = pgEnum("ad_request_status", [
 	"open",
@@ -145,4 +143,116 @@ export const adApplicationsTable = pgTable("ad_applications", {
 		.references(() => channelsTable.id, { onDelete: "cascade" }),
 	status: adApplicationStatusEnum("status").notNull().default("pending"),
 	appliedAt: timestamp("applied_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// ─── Deals ──────────────────────────────────────────────────────
+
+export const dealStatusEnum = pgEnum("deal_status", [
+	"awaiting_creative",
+	"creative_submitted",
+	"awaiting_payment",
+	"scheduled",
+	"posted",
+	"completed",
+	"cancelled",
+])
+
+export const dealsTable = pgTable("deals", {
+	id: integer().primaryKey().generatedAlwaysAsIdentity(),
+	applicationId: integer("application_id")
+		.notNull()
+		.references(() => adApplicationsTable.id),
+	channelId: integer("channel_id")
+		.notNull()
+		.references(() => channelsTable.id),
+	advertiserId: bigint("advertiser_id", { mode: "number" }).notNull(),
+	adFormat: adFormatEnum("ad_format").notNull(),
+	agreedPrice: decimal("agreed_price", { mode: "number" }).notNull(),
+	status: dealStatusEnum("status").notNull().default("awaiting_creative"),
+	scheduledPostAt: timestamp("scheduled_post_at", {
+		withTimezone: true,
+	}),
+	minPostDurationHours: integer("min_post_duration_hours").default(24),
+	completedAt: timestamp("completed_at", { withTimezone: true }),
+	cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// ─── Deal Creatives (drafts + approval) ─────────────────────────
+
+export const creativeStatusEnum = pgEnum("creative_status", [
+	"draft",
+	"submitted",
+	"approved",
+	"revision_requested",
+])
+
+export const dealCreativesTable = pgTable("deal_creatives", {
+	id: integer().primaryKey().generatedAlwaysAsIdentity(),
+	dealId: integer("deal_id")
+		.notNull()
+		.references(() => dealsTable.id, { onDelete: "cascade" }),
+	version: integer("version").notNull().default(1),
+	content: text("content").notNull(),
+	mediaUrls: jsonb("media_urls").$type<string[]>().default([]),
+	status: creativeStatusEnum("status").notNull().default("draft"),
+	reviewNote: text("review_note"),
+	submittedAt: timestamp("submitted_at", { withTimezone: true }),
+	reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// ─── Posting & Verification ────────────────────────────────────
+
+export const postingStatusEnum = pgEnum("posting_status", [
+	"scheduled",
+	"posted",
+	"verified",
+	"deleted_early",
+	"edited",
+	"failed",
+])
+
+export const dealPostingsTable = pgTable("deal_postings", {
+	id: integer().primaryKey().generatedAlwaysAsIdentity(),
+	dealId: integer("deal_id")
+		.notNull()
+		.references(() => dealsTable.id, { onDelete: "cascade" }),
+	creativeId: integer("creative_id")
+		.notNull()
+		.references(() => dealCreativesTable.id),
+	tgMessageId: integer("tg_message_id"),
+	status: postingStatusEnum("status").notNull().default("scheduled"),
+	postedAt: timestamp("posted_at", { withTimezone: true }),
+	mustStayUntil: timestamp("must_stay_until", { withTimezone: true }),
+	lastCheckedAt: timestamp("last_checked_at", { withTimezone: true }),
+	verifiedAt: timestamp("verified_at", { withTimezone: true }),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+
+// ─── Payments ──────────────────────────────────────────────────
+
+export const paymentTypeEnum = pgEnum("payment_type", ["escrow_hold", "release_to_owner", "refund"])
+
+export const paymentStatusEnum = pgEnum("payment_status", [
+	"pending",
+	"confirming",
+	"confirmed",
+	"failed",
+])
+
+export const paymentsTable = pgTable("payments", {
+	id: integer().primaryKey().generatedAlwaysAsIdentity(),
+	dealId: integer("deal_id")
+		.notNull()
+		.references(() => dealsTable.id),
+	type: paymentTypeEnum("type").notNull(),
+	status: paymentStatusEnum("status").notNull().default("pending"),
+	amountInTon: decimal("amount_in_ton", { mode: "number" }).notNull(),
+	fromAddress: text("from_address"),
+	toAddress: text("to_address"),
+	txHash: text("tx_hash"),
+	confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 })

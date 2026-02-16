@@ -39,6 +39,6 @@ app.post("/:id/apply", handleAuth, handleApplyToAdRequest)
 app.get("/:id/applications", handleAuth, handleGetAdRequestApplications)
 
 // Update application status (accept/reject)
-app.post("/:id/applications/:applicationId", handleAuth, handleUpdateApplicationStatus)
+app.patch("/:id/applications/:applicationId", handleAuth, handleUpdateApplicationStatus)
 
 export default app

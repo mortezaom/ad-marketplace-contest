@@ -15,7 +15,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { request } from "@/lib/http"
 import { setBackButton } from "@/lib/tma"
 
-interface AdRequestDetail {
+export interface AdRequestDetail {
 	id: number
 	title: string
 	description: string | null
@@ -279,6 +279,7 @@ export default function AdRequestDetailPage({ params }: { params: Promise<{ id: 
 			/>
 
 			<ApplicationReviewSheet
+				adRequest={adRequest}
 				application={selectedApplication}
 				onOpenChange={(open) => !open && setSelectedApplication(null)}
 				onRefresh={loadData}

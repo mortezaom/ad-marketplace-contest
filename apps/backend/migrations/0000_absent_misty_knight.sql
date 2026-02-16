@@ -3,6 +3,11 @@ CREATE TYPE "public"."ad_format" AS ENUM('post', 'story', 'forward');--> stateme
 CREATE TYPE "public"."ad_request_status" AS ENUM('open', 'in_progress', 'completed', 'cancelled');--> statement-breakpoint
 CREATE TYPE "public"."admin_role" AS ENUM('owner', 'admin');--> statement-breakpoint
 CREATE TYPE "public"."admin_source" AS ENUM('telegram', 'invite');--> statement-breakpoint
+CREATE TYPE "public"."creative_status" AS ENUM('draft', 'submitted', 'approved', 'revision_requested');--> statement-breakpoint
+CREATE TYPE "public"."deal_status" AS ENUM('awaiting_creative', 'creative_submitted', 'awaiting_payment', 'scheduled', 'posted', 'completed', 'cancelled');--> statement-breakpoint
+CREATE TYPE "public"."payment_status" AS ENUM('pending', 'confirming', 'confirmed', 'failed');--> statement-breakpoint
+CREATE TYPE "public"."payment_type" AS ENUM('escrow_hold', 'release_to_owner', 'refund');--> statement-breakpoint
+CREATE TYPE "public"."posting_status" AS ENUM('scheduled', 'posted', 'verified', 'deleted_early', 'edited', 'failed');--> statement-breakpoint
 CREATE TYPE "public"."tg_login_mode" AS ENUM('phone', 'qr');--> statement-breakpoint
 CREATE TYPE "public"."tg_login_status" AS ENUM('waiting_code', 'waiting_password', 'done', 'expired', 'canceled');--> statement-breakpoint
 CREATE TYPE "public"."tg_session_status" AS ENUM('active', 'disabled');--> statement-breakpoint
@@ -19,7 +24,7 @@ CREATE TABLE "ad_requests" (
 	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "ad_requests_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
 	"title" text NOT NULL,
 	"description" text,
-	"budget" integer DEFAULT 0 NOT NULL,
+	"budget" numeric DEFAULT 0 NOT NULL,
 	"min_subscribers" integer DEFAULT 0,
 	"language" text,
 	"deadline" timestamp with time zone,
@@ -55,6 +60,61 @@ CREATE TABLE "channels" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "channels_tg_id_unique" UNIQUE("tg_id")
+);
+--> statement-breakpoint
+CREATE TABLE "deal_creatives" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "deal_creatives_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"deal_id" integer NOT NULL,
+	"version" integer DEFAULT 1 NOT NULL,
+	"content" text NOT NULL,
+	"media_urls" jsonb DEFAULT '[]'::jsonb,
+	"status" "creative_status" DEFAULT 'draft' NOT NULL,
+	"review_note" text,
+	"submitted_at" timestamp with time zone,
+	"reviewed_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "deal_postings" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "deal_postings_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"deal_id" integer NOT NULL,
+	"creative_id" integer NOT NULL,
+	"tg_message_id" integer,
+	"status" "posting_status" DEFAULT 'scheduled' NOT NULL,
+	"posted_at" timestamp with time zone,
+	"must_stay_until" timestamp with time zone,
+	"last_checked_at" timestamp with time zone,
+	"verified_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "deals" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "deals_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"application_id" integer NOT NULL,
+	"channel_id" integer NOT NULL,
+	"advertiser_id" bigint NOT NULL,
+	"ad_format" "ad_format" NOT NULL,
+	"agreed_price" numeric NOT NULL,
+	"status" "deal_status" DEFAULT 'awaiting_creative' NOT NULL,
+	"scheduled_post_at" timestamp with time zone,
+	"min_post_duration_hours" integer DEFAULT 24,
+	"completed_at" timestamp with time zone,
+	"cancelled_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "payments" (
+	"id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (sequence name "payments_id_seq" INCREMENT BY 1 MINVALUE 1 MAXVALUE 2147483647 START WITH 1 CACHE 1),
+	"deal_id" integer NOT NULL,
+	"type" "payment_type" NOT NULL,
+	"status" "payment_status" DEFAULT 'pending' NOT NULL,
+	"amount_in_ton" numeric NOT NULL,
+	"from_address" text,
+	"to_address" text,
+	"tx_hash" text,
+	"confirmed_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "tg_login_flows" (
@@ -100,4 +160,10 @@ CREATE TABLE "users" (
 --> statement-breakpoint
 ALTER TABLE "ad_applications" ADD CONSTRAINT "ad_applications_ad_request_id_ad_requests_id_fk" FOREIGN KEY ("ad_request_id") REFERENCES "public"."ad_requests"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ad_applications" ADD CONSTRAINT "ad_applications_channel_id_channels_id_fk" FOREIGN KEY ("channel_id") REFERENCES "public"."channels"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "channel_admins" ADD CONSTRAINT "channel_admins_channel_id_channels_id_fk" FOREIGN KEY ("channel_id") REFERENCES "public"."channels"("id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "channel_admins" ADD CONSTRAINT "channel_admins_channel_id_channels_id_fk" FOREIGN KEY ("channel_id") REFERENCES "public"."channels"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "deal_creatives" ADD CONSTRAINT "deal_creatives_deal_id_deals_id_fk" FOREIGN KEY ("deal_id") REFERENCES "public"."deals"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "deal_postings" ADD CONSTRAINT "deal_postings_deal_id_deals_id_fk" FOREIGN KEY ("deal_id") REFERENCES "public"."deals"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "deal_postings" ADD CONSTRAINT "deal_postings_creative_id_deal_creatives_id_fk" FOREIGN KEY ("creative_id") REFERENCES "public"."deal_creatives"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "deals" ADD CONSTRAINT "deals_application_id_ad_applications_id_fk" FOREIGN KEY ("application_id") REFERENCES "public"."ad_applications"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "deals" ADD CONSTRAINT "deals_channel_id_channels_id_fk" FOREIGN KEY ("channel_id") REFERENCES "public"."channels"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "payments" ADD CONSTRAINT "payments_deal_id_deals_id_fk" FOREIGN KEY ("deal_id") REFERENCES "public"."deals"("id") ON DELETE no action ON UPDATE no action;

@@ -1,8 +1,10 @@
 // components/ads/ApplicationReviewSheet.tsx
 import { openTelegramLink } from "@telegram-apps/sdk-react"
 import { LinkIcon } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
-import type { Application } from "@/app/advertisement/[...id]/page"
+import { toast } from "sonner"
+import type { AdRequestDetail, Application } from "@/app/advertisement/[...id]/page"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,54 +15,45 @@ import { getChannelPhoto, request } from "@/lib/http"
 
 interface ApplicationReviewSheetProps {
 	application: Application | null
+	adRequest: AdRequestDetail
 	onOpenChange: (open: boolean) => void
 	onRefresh: () => void
 }
 
 export function ApplicationReviewSheet({
+	adRequest,
 	application,
 	onOpenChange,
 	onRefresh,
 }: ApplicationReviewSheetProps) {
 	const [loading, setLoading] = useState(false)
+	const router = useRouter()
 
-	const handleAccept = async () => {
+	const handleSheetAction = async (type: "accepted" | "rejected") => {
 		if (!application) {
 			return
 		}
 
 		setLoading(true)
-		const res = await request(
-			`ads/${application.channelId}/applications/${application.id}/accept`,
-			{
-				method: "POST",
-			}
-		)
+		const res = await request(`ads/${adRequest.id}/applications/${application.id}`, {
+			method: "PATCH",
+			json: {
+				status: type,
+			},
+		})
 		setLoading(false)
 
 		if (res.ok) {
 			onOpenChange(false)
 			onRefresh()
-		}
-	}
-
-	const handleReject = async () => {
-		if (!application) {
-			return
-		}
-
-		setLoading(true)
-		const res = await request(
-			`ads/${application.channelId}/applications/${application.id}/reject`,
-			{
-				method: "POST",
+			if (type === "accepted") {
+				toast.success("Application accepted! Redirecting to deals...")
+				// Navigate to deals page
+				router.push("/")
+				// Switch to deals tab - this will happen automatically since we go to home page with deals as default
 			}
-		)
-		setLoading(false)
-
-		if (res.ok) {
-			onOpenChange(false)
-			onRefresh()
+		} else {
+			toast.error(res.message)
 		}
 	}
 
@@ -92,6 +85,15 @@ export function ApplicationReviewSheet({
 									{application.channel.tgLink}
 								</Button>
 							</div>
+
+							{application.status !== "pending" && (
+								<Badge
+									className="ml-auto font-normal capitalize"
+									variant={application.status === "accepted" ? "default" : "destructive"}
+								>
+									{application.status}
+								</Badge>
+							)}
 						</div>
 
 						<div className="grid grid-cols-2 gap-2">
@@ -143,21 +145,29 @@ export function ApplicationReviewSheet({
 							</span>
 						</div>
 
-						<Separator />
+						{application.status === "pending" && (
+							<>
+								<Separator />
 
-						<div className="flex gap-3">
-							<Button className="flex-1" disabled={loading} onClick={handleAccept}>
-								{loading ? <Spinner className="h-4 w-4" /> : "Accept"}
-							</Button>
-							<Button
-								className="flex-1"
-								disabled={loading}
-								onClick={handleReject}
-								variant="destructive"
-							>
-								{loading ? <Spinner className="h-4 w-4" /> : "Reject"}
-							</Button>
-						</div>
+								<div className="flex gap-3">
+									<Button
+										className="flex-1"
+										disabled={loading}
+										onClick={() => handleSheetAction("accepted")}
+									>
+										{loading ? <Spinner className="h-4 w-4" /> : "Accept"}
+									</Button>
+									<Button
+										className="flex-1"
+										disabled={loading}
+										onClick={() => handleSheetAction("rejected")}
+										variant="destructive"
+									>
+										{loading ? <Spinner className="h-4 w-4" /> : "Reject"}
+									</Button>
+								</div>
+							</>
+						)}
 					</div>
 				)}
 			</SheetContent>

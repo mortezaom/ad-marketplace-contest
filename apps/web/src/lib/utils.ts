@@ -41,3 +41,33 @@ export const convertAdsFilter = (filters?: {
 
 	return params.toString()
 }
+
+type BadgeVariant = "default" | "secondary" | "outline" | "destructive"
+
+export const statusVariants: Record<string, BadgeVariant> = {
+	awaiting_creative: "outline",
+	creative_submitted: "secondary",
+	awaiting_payment: "secondary",
+	scheduled: "default",
+	posted: "default",
+	completed: "outline",
+	cancelled: "destructive",
+}
+
+export const creativeStatusVariants: Record<string, BadgeVariant> = {
+	draft: "outline",
+	submitted: "secondary",
+	approved: "default",
+	revision_requested: "destructive",
+}
+
+export const formatStatus = (status: string) => status.replace(/_/g, " ")
+
+export const formatDate = (date: string | null) =>
+	date
+		? new Date(date).toLocaleDateString("en-US", {
+				month: "short",
+				day: "numeric",
+				year: "numeric",
+			})
+		: "Not scheduled"
