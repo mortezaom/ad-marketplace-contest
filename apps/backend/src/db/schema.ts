@@ -197,7 +197,6 @@ export const dealCreativesTable = pgTable("deal_creatives", {
 	content: text("content").notNull(),
 	mediaUrls: jsonb("media_urls").$type<string[]>().default([]),
 	status: creativeStatusEnum("status").notNull().default("draft"),
-	reviewNote: text("review_note"),
 	submittedAt: timestamp("submitted_at", { withTimezone: true }),
 	reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
 	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

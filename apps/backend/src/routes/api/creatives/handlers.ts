@@ -41,10 +41,8 @@ export const handleGetCreativesByDeal = async (c: Context) => {
 			return c.json(errorResponse("Deal not found"), 404)
 		}
 
-		// Get user's channel IDs
 		const userChannelIds = await getUserChannelIds(user.tid)
 
-		// Check if user has access
 		const isAdvertiser = deal.advertiserId === user.tid
 		const isChannelOwner = userChannelIds.includes(deal.channelId)
 
@@ -52,7 +50,6 @@ export const handleGetCreativesByDeal = async (c: Context) => {
 			return c.json(errorResponse("Access denied"), 403)
 		}
 
-		// Get all creatives for this deal
 		const creatives = await db
 			.select({
 				id: dealCreativesTable.id,
@@ -61,7 +58,6 @@ export const handleGetCreativesByDeal = async (c: Context) => {
 				content: dealCreativesTable.content,
 				mediaUrls: dealCreativesTable.mediaUrls,
 				status: dealCreativesTable.status,
-				reviewNote: dealCreativesTable.reviewNote,
 				submittedAt: dealCreativesTable.submittedAt,
 				reviewedAt: dealCreativesTable.reviewedAt,
 				createdAt: dealCreativesTable.createdAt,
@@ -70,7 +66,6 @@ export const handleGetCreativesByDeal = async (c: Context) => {
 			.where(eq(dealCreativesTable.dealId, dealId))
 			.orderBy(desc(dealCreativesTable.version))
 
-		// Format response
 		const formattedCreatives = creatives.map((creative) => ({
 			id: creative.id,
 			dealId: creative.dealId,
@@ -78,7 +73,6 @@ export const handleGetCreativesByDeal = async (c: Context) => {
 			content: creative.content,
 			mediaUrls: creative.mediaUrls ?? [],
 			status: creative.status,
-			reviewNote: creative.reviewNote,
 			submittedAt: creative.submittedAt,
 			reviewedAt: creative.reviewedAt,
 			createdAt: creative.createdAt,
@@ -106,10 +100,8 @@ export const handleGetCreativeById = async (c: Context) => {
 			return c.json(errorResponse("Deal not found"), 404)
 		}
 
-		// Get user's channel IDs
 		const userChannelIds = await getUserChannelIds(user.tid)
 
-		// Check if user has access
 		const isAdvertiser = deal.advertiserId === user.tid
 		const isChannelOwner = userChannelIds.includes(deal.channelId)
 
@@ -125,7 +117,6 @@ export const handleGetCreativeById = async (c: Context) => {
 				content: creative.content,
 				mediaUrls: creative.mediaUrls ?? [],
 				status: creative.status,
-				reviewNote: creative.reviewNote,
 				submittedAt: creative.submittedAt,
 				reviewedAt: creative.reviewedAt,
 				createdAt: creative.createdAt,
@@ -148,16 +139,13 @@ export const handleCreateCreative = async (c: Context) => {
 			return c.json(errorResponse("Deal not found"), 404)
 		}
 
-		// Get user's channel IDs
 		const userChannelIds = await getUserChannelIds(user.tid)
 
-		// Only channel owners can create creatives
 		const isChannelOwner = userChannelIds.includes(deal.channelId)
 		if (!isChannelOwner) {
 			return c.json(errorResponse("Only channel owners can create creatives"), 403)
 		}
 
-		// Get the latest version for this deal
 		const [latestCreative] = await db
 			.select({ version: dealCreativesTable.version })
 			.from(dealCreativesTable)
@@ -178,7 +166,6 @@ export const handleCreateCreative = async (c: Context) => {
 			})
 			.returning()
 
-		// Update deal status
 		await db
 			.update(dealsTable)
 			.set({ status: "awaiting_creative", updatedAt: new Date() })
@@ -192,7 +179,6 @@ export const handleCreateCreative = async (c: Context) => {
 				content: created.content,
 				mediaUrls: created.mediaUrls ?? [],
 				status: created.status,
-				reviewNote: created.reviewNote,
 				submittedAt: created.submittedAt,
 				reviewedAt: created.reviewedAt,
 				createdAt: created.createdAt,
@@ -220,19 +206,15 @@ export const handleUpdateCreative = async (c: Context) => {
 			return c.json(errorResponse("Deal not found"), 404)
 		}
 
-		// Get user's channel IDs
 		const userChannelIds = await getUserChannelIds(user.tid)
 
-		// Check access - channel owner can update drafts, advertiser can update review notes
 		const isAdvertiser = deal.advertiserId === user.tid
 		const isChannelOwner = userChannelIds.includes(deal.channelId)
 
-		// Channel owners can only update drafts
-		if (isChannelOwner && creative.status !== "draft") {
+		if (isChannelOwner && !["draft", "revision_requested"].includes(creative.status)) {
 			return c.json(errorResponse("Cannot update submitted creative"), 403)
 		}
 
-		// Advertisers can approve/reject submitted creatives
 		if (isAdvertiser && !body.status) {
 			return c.json(errorResponse("Advertisers can only approve or request revisions"), 403)
 		}
@@ -253,7 +235,6 @@ export const handleUpdateCreative = async (c: Context) => {
 			updateData.status = body.status
 			if (body.status === "submitted") {
 				updateData.submittedAt = new Date()
-				// Update deal status
 				await db
 					.update(dealsTable)
 					.set({ status: "creative_submitted", updatedAt: new Date() })
@@ -263,9 +244,6 @@ export const handleUpdateCreative = async (c: Context) => {
 				updateData.reviewedAt = new Date()
 			}
 		}
-		if (body.reviewNote !== undefined) {
-			updateData.reviewNote = body.reviewNote
-		}
 
 		const [updated] = await db
 			.update(dealCreativesTable)
@@ -273,7 +251,6 @@ export const handleUpdateCreative = async (c: Context) => {
 			.where(eq(dealCreativesTable.id, id))
 			.returning()
 
-		// If approved, update deal status to awaiting payment
 		if (body.status === "approved") {
 			await db
 				.update(dealsTable)
@@ -289,7 +266,6 @@ export const handleUpdateCreative = async (c: Context) => {
 				content: updated.content,
 				mediaUrls: updated.mediaUrls ?? [],
 				status: updated.status,
-				reviewNote: updated.reviewNote,
 				submittedAt: updated.submittedAt,
 				reviewedAt: updated.reviewedAt,
 				createdAt: updated.createdAt,

@@ -10,6 +10,7 @@ const envSchema = z.object({
 	BACKEND_PORT: z.coerce.number().min(1000).max(65_535),
 	TG_API_ID: z.coerce.number(),
 	TG_API_HASH: z.string(),
+	TONCENTER_API_KEY: z.string(),
 })
 
 export function parseENV() {

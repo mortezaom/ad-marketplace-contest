@@ -10,7 +10,6 @@ export const UpdateCreativeSchema = z
 		content: z.string().min(1).optional(),
 		mediaUrls: z.array(z.string()).optional(),
 		status: z.enum(["draft", "submitted", "approved", "revision_requested"]).optional(),
-		reviewNote: z.string().optional(),
 	})
 	.partial()
 

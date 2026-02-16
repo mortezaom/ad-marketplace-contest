@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, ne, sql } from "drizzle-orm"
 import type { Context } from "hono"
 import type { DealModel, UserModel } from "shared"
 import { db } from "@/db"
@@ -34,10 +34,8 @@ export const handleGetDeals = async (c: Context) => {
 	const user = c.get("user") as UserModel
 
 	try {
-		// Get channels where user is an admin (channel owner)
 		const userChannelIds = await getUserChannelIds(user.tid)
 
-		// Get deals where user is either the advertiser OR channel owner
 		const deals = await db
 			.select({
 				id: dealsTable.id,
@@ -76,7 +74,6 @@ export const handleGetDeals = async (c: Context) => {
 			)
 			.orderBy(desc(dealsTable.createdAt))
 
-		// Format response
 		const formattedDeals = deals.map((d) => ({
 			id: d.id,
 			applicationId: d.applicationId,
@@ -100,7 +97,6 @@ export const handleGetDeals = async (c: Context) => {
 				id: d.adRequestId,
 				title: d.adRequestTitle,
 			},
-			// Determine user role for this deal
 			userRole: d.advertiserId === user.tid ? "advertiser" : "channel_owner",
 		}))
 
@@ -121,10 +117,8 @@ export const handleGetDealById = async (c: Context) => {
 			return c.json(errorResponse("Deal not found"), 404)
 		}
 
-		// Get user's channel IDs
 		const userChannelIds = await getUserChannelIds(user.tid)
 
-		// Check if user has access to this deal
 		const isAdvertiser = deal.advertiserId === user.tid
 		const isChannelOwner = userChannelIds.includes(deal.channelId)
 
@@ -132,7 +126,6 @@ export const handleGetDealById = async (c: Context) => {
 			return c.json(errorResponse("Access denied"), 403)
 		}
 
-		// Get full deal details
 		const [fullDeal] = await db
 			.select({
 				id: dealsTable.id,
@@ -154,7 +147,7 @@ export const handleGetDealById = async (c: Context) => {
 				channelTgId: channelsTable.tgId,
 				channelSubCount: channelsTable.subCount,
 				channelAvgPostReach: channelsTable.avgPostReach,
-				// Ad request info
+
 				adRequestTitle: adRequestsTable.title,
 				adRequestDescription: adRequestsTable.description,
 				adRequestId: adRequestsTable.id,
@@ -187,15 +180,26 @@ export const handleGetDealById = async (c: Context) => {
 				content: dealCreativesTable.content,
 				mediaUrls: dealCreativesTable.mediaUrls,
 				status: dealCreativesTable.status,
-				reviewNote: dealCreativesTable.reviewNote,
 				submittedAt: dealCreativesTable.submittedAt,
 				reviewedAt: dealCreativesTable.reviewedAt,
 				createdAt: dealCreativesTable.createdAt,
 			})
 			.from(dealCreativesTable)
-			.where(eq(dealCreativesTable.dealId, id))
+			.where(
+				and(
+					eq(dealCreativesTable.dealId, id),
+					isAdvertiser ? ne(dealCreativesTable.status, "draft") : undefined
+				)
+			)
 			.orderBy(desc(dealCreativesTable.version))
 			.limit(1)
+
+		const creative = latestCreative
+			? {
+					...latestCreative,
+					mediaUrls: latestCreative.mediaUrls ?? [],
+				}
+			: null
 
 		const response = {
 			id: fullDeal.id,
@@ -236,12 +240,7 @@ export const handleGetDealById = async (c: Context) => {
 				lastName: fullDeal.advertiserLastName,
 				username: fullDeal.advertiserUsername,
 			},
-			creative: latestCreative
-				? {
-						...latestCreative,
-						mediaUrls: latestCreative.mediaUrls ?? [],
-					}
-				: null,
+			creative,
 			userRole: isAdvertiser ? "advertiser" : "channel_owner",
 		}
 

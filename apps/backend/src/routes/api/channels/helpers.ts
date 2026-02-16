@@ -387,17 +387,20 @@ export const getChannelsByUser = async (
 
 	if (requestData?.language && requestData?.language !== null) {
 		filtered = filtered.filter(({ channel }) => {
-			const langs: string[] = channel.languages ? JSON.parse(channel.languages) : []
+			const langs: string[] = channel.languages
+				? JSON.parse(channel.languages).map((l: LanguageStats) => l.name)
+				: []
 			return langs.includes(requestData.language ?? "")
 		})
 	}
-
 	if (requestData?.budget != null) {
 		filtered = filtered.filter(({ channel }) => {
 			if (!channel.listingInfo) {
 				return false
 			}
 			const listing = JSON.parse(channel.listingInfo)
+			console.log(listing)
+			console.log(listing.postPrice, requestData.budget)
 			return listing.postPrice > 0 && listing.postPrice <= requestData.budget
 		})
 	}
