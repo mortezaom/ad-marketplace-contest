@@ -42,7 +42,7 @@ export const handleCreateAdRequest = async (c: Context) => {
 				budget: body.budget,
 				minSubscribers: body.minSubscribers,
 				language: body.language,
-				deadline: body.deadline ? new Date(body.deadline) : null,
+				deadline: new Date(body.deadline),
 				adFormat: body.adFormat,
 				contentGuidelines: body.contentGuidelines,
 				advertiserId: user.tid,

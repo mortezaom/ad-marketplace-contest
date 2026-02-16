@@ -6,7 +6,7 @@ export const CreateAdRequestSchema = z.object({
 	budget: z.number().int().min(0).default(0),
 	minSubscribers: z.number().int().min(0).default(0),
 	language: z.string().optional(),
-	deadline: z.string().optional(), // ISO date string
+	deadline: z.string(), // ISO date string
 	adFormat: z.enum(["post", "story", "forward"]).default("post"),
 	contentGuidelines: z.string().optional(),
 })

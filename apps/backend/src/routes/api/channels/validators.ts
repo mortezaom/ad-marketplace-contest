@@ -19,3 +19,7 @@ export const SetListingInfoParam = z.object({
 	forwardPrice: z.number(),
 	isPublic: z.boolean().default(false),
 })
+
+export const SaveWalletSchema = z.object({
+	walletAddress: z.string().min(10),
+})

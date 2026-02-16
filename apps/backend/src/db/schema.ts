@@ -21,7 +21,6 @@ export const usersTable = pgTable("users", {
 	last_name: varchar().default(""),
 	photo_url: varchar().default(""),
 	username: varchar(),
-	walletAddress: text(),
 	created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 	updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
@@ -82,6 +81,7 @@ export const channelsTable = pgTable("channels", {
 	avgPostReach: integer("avg_post_reach").default(0),
 	languages: text("languages"),
 	listingInfo: text("listingInfo"),
+	walletAddress: text(),
 	isPublic: boolean("is_public").default(false),
 	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -125,7 +125,7 @@ export const adRequestsTable = pgTable("ad_requests", {
 	budget: decimal("budget", { mode: "number" }).notNull().default(0),
 	minSubscribers: integer("min_subscribers").default(0),
 	language: text("language"),
-	deadline: timestamp("deadline", { withTimezone: true }),
+	deadline: timestamp("deadline", { withTimezone: true }).notNull(),
 	adFormat: adFormatEnum("ad_format").notNull().default("post"),
 	contentGuidelines: text("content_guidelines"),
 	advertiserId: bigint("advertiser_id", { mode: "number" }).notNull(),
@@ -172,10 +172,11 @@ export const dealsTable = pgTable("deals", {
 	status: dealStatusEnum("status").notNull().default("awaiting_creative"),
 	scheduledPostAt: timestamp("scheduled_post_at", {
 		withTimezone: true,
-	}),
+	}).notNull(),
 	minPostDurationHours: integer("min_post_duration_hours").default(24),
 	completedAt: timestamp("completed_at", { withTimezone: true }),
 	cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+	tgPostId: bigint("tg_post_id", { mode: "number" }),
 	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 	updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })
@@ -246,7 +247,11 @@ export const paymentsTable = pgTable("payments", {
 	id: integer().primaryKey().generatedAlwaysAsIdentity(),
 	dealId: integer("deal_id")
 		.notNull()
+		.unique()
 		.references(() => dealsTable.id),
+	escrowWallet: integer("escrow_wallet")
+		.notNull()
+		.references(() => escrowWalletsTable.id),
 	type: paymentTypeEnum("type").notNull(),
 	status: paymentStatusEnum("status").notNull().default("pending"),
 	amountInTon: decimal("amount_in_ton", { mode: "number" }).notNull(),
@@ -255,4 +260,10 @@ export const paymentsTable = pgTable("payments", {
 	txHash: text("tx_hash"),
 	confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
 	createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+})
+export const escrowWalletsTable = pgTable("escrow_wallets", {
+	id: integer().primaryKey().generatedAlwaysAsIdentity(),
+	address: text().notNull(),
+	publicKey: text().notNull(),
+	privateKey: text().notNull(),
 })

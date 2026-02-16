@@ -8,7 +8,7 @@ export interface DealListItem {
 	adFormat: AdFormat
 	agreedPrice: number
 	status: DealStatus
-	scheduledPostAt: string | null
+	scheduledPostAt: string
 	minPostDurationHours: number
 	completedAt: string | null
 	cancelledAt: string | null

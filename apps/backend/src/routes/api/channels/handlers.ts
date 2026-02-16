@@ -15,6 +15,7 @@ import {
 } from "./helpers"
 import {
 	AddAdminToChannelParam,
+	SaveWalletSchema,
 	SetListingInfoParam,
 	SubmitChannelParam,
 	VerifyChannelParam,
@@ -215,6 +216,7 @@ export const handleGetChannelById = async (c: Context) => {
 							forwardPrice: 0,
 						},
 				isPublic: channel.isPublic ?? false,
+				walletAddress: channel.walletAddress ?? undefined,
 			},
 			weeklyStats,
 		}
@@ -478,5 +480,53 @@ export const handleGetPublicChannels = async (c: Context) => {
 		)
 	} catch (error) {
 		return c.json(errorResponse("Failed to get channel list", error), 500)
+	}
+}
+
+export const handleSaveWalletForChannel = async (c: Context) => {
+	const tgId = c.req.param("id")
+	const body = SaveWalletSchema.safeParse(await parseBody(c))
+	const user = c.get("user") as UserModel
+
+	if (body.error) {
+		return c.json(errorResponse(body.error.message), 422)
+	}
+
+	try {
+		const channel = await db
+			.select({ id: channelsTable.id })
+			.from(channelsTable)
+			.where(eq(channelsTable.tgId, BigInt(tgId)))
+			.limit(1)
+			.then((rows) => (rows.length > 0 ? rows[0] : null))
+
+		if (!channel) {
+			return c.json(errorResponse("Channel not found"), 404)
+		}
+
+		const requesterAdmin = await db
+			.select()
+			.from(channelAdminsTable)
+			.where(
+				and(eq(channelAdminsTable.channelId, channel.id), eq(channelAdminsTable.tgUserId, user.tid))
+			)
+			.limit(1)
+			.then((rows) => (rows.length > 0 ? rows[0] : null))
+
+		if (!requesterAdmin) {
+			return c.json(errorResponse("No access to this channel!"), 403)
+		}
+
+		await db
+			.update(channelsTable)
+			.set({
+				walletAddress: body.data.walletAddress,
+			})
+			.where(eq(channelsTable.id, channel.id))
+			.execute()
+
+		return c.json(successResponse({ message: "Wallet Attached successfully!" }))
+	} catch (error) {
+		return c.json(errorResponse("Failed to attach wallet to channel!", error), 500)
 	}
 }

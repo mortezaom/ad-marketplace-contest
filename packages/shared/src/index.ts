@@ -29,6 +29,7 @@ export interface ChannelModel {
 		forwardPrice: number
 	}
 	isPublic: boolean
+	walletAddress?: string | undefined
 }
 
 export interface ChannelDetailResponse {
@@ -135,7 +136,7 @@ export interface DealModel {
 	adFormat: AdFormat
 	agreedPrice: number
 	status: DealStatus
-	scheduledPostAt: Date | null
+	scheduledPostAt: Date
 	minPostDurationHours: number
 	completedAt: Date | null
 	cancelledAt: Date | null

@@ -1,15 +1,23 @@
 "use client"
 
 import { openTelegramLink } from "@telegram-apps/sdk-react"
+import { toNano } from "@ton/ton"
+import { TonConnectButton, useTonAddress, useTonConnectUI } from "@tonconnect/ui-react"
 import { LinkIcon, MessageCircle } from "lucide-react"
+import { useEffect, useState } from "react"
+import { toast } from "sonner"
 import { H4, H5, P } from "@/components/customized/typography"
 import { FeedbackSheet } from "@/components/feedback-sheet"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { request } from "@/lib/http"
 import { formatDate, statusVariants, transformStatus } from "@/lib/utils"
 import type { DealDetail } from "@/types/deals"
+import { CustomConfirm } from "./customized/custom-confirm"
+import { Spinner } from "./ui/spinner"
 
 interface DealOverviewProps {
 	deal: DealDetail
@@ -29,7 +37,7 @@ export function DealOverview({ deal, isAdvertiser }: DealOverviewProps) {
 
 			<CommunicationSection dealId={deal.id} />
 
-			{deal.status === "awaiting_payment" && <PaymentSection />}
+			{deal.status === "awaiting_payment" && <PaymentSection deal={deal} />}
 		</>
 	)
 }
@@ -141,16 +149,129 @@ function CommunicationSection({ dealId }: { dealId: number }) {
 	)
 }
 
-function PaymentSection() {
+interface DealPaymentType {
+	id: number
+	status: "pending" | "confirming" | "confirmed" | "failed"
+	dealId: number
+	escrowWallet: number
+	amountInTon: number
+	fromAddress: string | null
+	toAddress: string | null
+}
+
+function PaymentSection({ deal }: { deal: DealDetail }) {
+	const walletAddress = useTonAddress(true)
+
+	const [tonConnectUI] = useTonConnectUI()
+
+	const [paymentCompleted, setPaymentCompleted] = useState<boolean>(false)
+	const [loading, setLoading] = useState(false)
+
+	const fetchWallet = async () => {
+		if (!walletAddress) {
+			toast.error("Wallet not connected!")
+			return
+		}
+
+		const res = await request<DealPaymentType>(`deals/${deal.id}/get-payment-wallet`, {
+			method: "post",
+			json: {
+				userWallet: walletAddress,
+			},
+		})
+
+		if (res.ok) {
+			return res.data.toAddress
+		}
+	}
+
+	const payAmount = async () => {
+		setLoading(true)
+		const recipient = await fetchWallet()
+		if (!recipient) {
+			toast.error("failed to prepare transaction!")
+			setLoading(false)
+			return
+		}
+		const amountTon = deal.agreedPrice
+
+		const tx = {
+			validUntil: Math.floor(Date.now() / 1000) + 5 * 60, // 5 min
+			messages: [
+				{
+					address: recipient,
+					amount: toNano(amountTon).toString(),
+				},
+			],
+		}
+
+		try {
+			await tonConnectUI.sendTransaction(tx)
+
+			setPaymentCompleted(true)
+
+			await request<DealPaymentType>(`deals/${deal.id}/submit-transaction`, {
+				method: "post",
+			})
+		} catch (e) {
+			// user rejected / wallet error
+			console.error(e)
+			toast.error("Payment failed, check your wallet/balance and try again!")
+		} finally {
+			setLoading(false)
+		}
+	}
+
+	const loadPayment = async () => {
+		const res = await request<DealPaymentType>(`deals/${deal.id}/get-payment`, {
+			method: "get",
+		})
+
+		if (res.ok) {
+			setPaymentCompleted(["confirming", "confirmed"].includes(res.data.status))
+		}
+	}
+
+	useEffect(() => {
+		loadPayment()
+	}, [])
+
 	return (
-		<div className="rounded-lg bg-primary/10 p-4 text-center">
-			<H4 className="text-primary">Payment Required</H4>
-			<P className="text-muted-foreground text-sm">
-				Please complete the payment to proceed with the ad posting.
-			</P>
-			<Button className="mt-3" disabled>
-				Coming Soon
-			</Button>
-		</div>
+		<Card>
+			{paymentCompleted ? (
+				<div className="flex flex-col items-center gap-2 p-8 text-center transition-all">
+					<CustomConfirm showTick={true} />
+					<P className="font-medium text-muted-foreground text-sm">
+						Your payment has been submitted to the network. After we receive confirmation, your
+						approved draft will be scheduled to be posted on the channel.
+					</P>
+				</div>
+			) : (
+				<>
+					<CardHeader>
+						<CardTitle>Payment Required</CardTitle>
+						<CardDescription>
+							Please complete the payment to proceed with the ad posting.
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="flex flex-col gap-8">
+						<div className="flex w-full items-center justify-between">
+							<P className="font-semibold text-sm">
+								{walletAddress ? "Connected" : "Not Connected"}
+							</P>
+							<TonConnectButton />
+						</div>
+						{walletAddress && !paymentCompleted && (
+							<div className="flex flex-col">
+								<Button disabled={loading} onClick={payAmount}>
+									Pay
+									{loading && <Spinner data-icon="inline-end" />}
+								</Button>
+							</div>
+						)}
+					</CardContent>
+				</>
+			)}
+		</Card>
 	)
 }

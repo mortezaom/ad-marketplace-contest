@@ -1,5 +1,5 @@
-import { TonConnectButton } from "@tonconnect/ui-react"
-import { useState } from "react"
+import { TonConnectButton, useTonAddress, useTonConnectUI } from "@tonconnect/ui-react"
+import { useEffect, useState } from "react"
 import type { ChannelModel } from "shared"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import {
 	FieldSet,
 } from "@/components/ui/field"
 import { request } from "@/lib/http"
+import { P } from "./customized/typography"
 import { InputGroup, InputGroupAddon, InputGroupInput } from "./ui/input-group"
 import { Spinner } from "./ui/spinner"
 import { Switch } from "./ui/switch"
@@ -31,11 +32,16 @@ interface ChannelListingProps {
 export function ChannelListingContent({ channel, onSaved }: ChannelListingProps) {
 	const [loading, setLoading] = useState(false)
 
+	const walletAddress = useTonAddress(true)
+	const [tonConnectUI] = useTonConnectUI()
+
 	const [postPrice, setPostPrice] = useState(`${channel.listingInfo.postPrice ?? ""}`)
 	const [storyPrice, setStoryPrice] = useState(`${channel.listingInfo.storyPrice ?? ""}`)
 	const [forwardPrice, setForwardPrice] = useState(`${channel.listingInfo.forwardPrice ?? ""}`)
 
 	const [isPublic, setIsPublic] = useState(channel.isPublic)
+
+	const [localWallet, setLocalWallet] = useState<string | undefined>()
 
 	const onSave = async () => {
 		setLoading(true)
@@ -59,17 +65,33 @@ export function ChannelListingContent({ channel, onSaved }: ChannelListingProps)
 	}
 
 	const onWalletAddressReceived = async (walletAddress: string) => {
-		const res = await request<object>("users/save-wallet", {
+		const json = {
+			walletAddress: `${walletAddress}`,
+		}
+		const res = await request<object>(`channels/${channel.tgId}/save-wallet`, {
 			method: "put",
-			json: {
-				walletAddress,
-			},
+			json,
 		})
 		if (res.ok) {
-			toast.success("Wallet Address linked to your current User!")
+			await tonConnectUI.disconnect()
+			setLocalWallet(json.walletAddress)
 		} else {
 			toast.error(res.message)
 		}
+	}
+
+	useEffect(() => {
+		if (walletAddress && !channel.walletAddress) {
+			onWalletAddressReceived(walletAddress)
+		}
+	}, [walletAddress])
+
+	const getWalletAbb = () => {
+		const wallet = channel.walletAddress || localWallet
+		if (wallet) {
+			return `${wallet.substring(0, 4)} ... ${wallet.substring(wallet.length -5)}`
+		}
+		return ""
 	}
 
 	return (
@@ -120,10 +142,20 @@ export function ChannelListingContent({ channel, onSaved }: ChannelListingProps)
 					<FieldSet>
 						<FieldGroup>
 							<Field orientation="horizontal">
-								<TonConnectButton />
+								<FieldLabel>
+									{channel.walletAddress || localWallet ? "Connected" : "Not Connected"}
+								</FieldLabel>
+
+								{channel.walletAddress || localWallet ? (
+									<P className="font-semibold">{getWalletAbb()}</P>
+								) : (
+									<TonConnectButton />
+								)}
 							</Field>
 						</FieldGroup>
-						<FieldDescription>Your wallet address will be saved for payouts</FieldDescription>
+						<FieldDescription>
+							Your wallet address will be attached to this telegram account for payouts
+						</FieldDescription>
 					</FieldSet>
 					<FieldSeparator />
 					<FieldSet>

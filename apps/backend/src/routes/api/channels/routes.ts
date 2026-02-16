@@ -11,6 +11,7 @@ import {
 	handleGetChannelsForRequest,
 	handleGetPublicChannels,
 	handleListingSetting,
+	handleSaveWalletForChannel,
 	handleVerifyChannel,
 	hangleAgentForChannel,
 } from "./handlers"
@@ -38,6 +39,8 @@ app.get("/:id/admins", handleAuth, handleGetChannelAdmins)
 app.post("/:id/admins", handleAuth, handleAddAdmin)
 
 app.post("/:id/listing", handleAuth, handleListingSetting)
+
+app.put("/:id/save-wallet", handleAuth, handleSaveWalletForChannel)
 
 app.delete("/:id/admins/:adminId", handleAuth, handleDemoteAdmin)
 

@@ -1,13 +1,5 @@
 import { mnemonicNew, mnemonicToPrivateKey } from "@ton/crypto"
-import {
-	Address,
-	fromNano,
-	internal,
-	SendMode,
-	TonClient,
-	toNano,
-	WalletContractV5R1,
-} from "@ton/ton"
+import { Address, internal, SendMode, TonClient, toNano, WalletContractV5R1 } from "@ton/ton"
 
 // ==========================================
 // CONFIGURATION
@@ -35,7 +27,7 @@ const client = new TonClient({
 
 export interface WalletData {
 	address: string
-	mnemonic: string[]
+	privateKey: string
 	publicKey: string
 }
 
@@ -61,64 +53,74 @@ export async function createEscrowWallet(): Promise<WalletData> {
 	})
 
 	return {
-		address: wallet.address.toString({ testOnly: IS_TESTNET }),
-		mnemonic,
+		address: wallet.address.toString({ testOnly: IS_TESTNET, bounceable: false }),
+		privateKey: keyPair.secretKey.toString("hex"),
 		publicKey: keyPair.publicKey.toString("hex"),
 	}
 }
 
-export async function checkPaymentStatus(
-	address: string,
-	requiredAmountTon: string
-): Promise<PaymentStatus> {
-	try {
-		const targetAddress = Address.parse(address)
+export const checkReceived = async (
+	myWalletAddress: string,
+	fromAddress: string,
+	minAmount = 0n
+): Promise<{ received: boolean; hash: string | null }> => {
+	const myAddr = Address.parse(myWalletAddress)
+	const senderAddr = Address.parse(fromAddress)
 
-		const balanceNano = await client.getBalance(targetAddress)
-		const balanceTon = fromNano(balanceNano)
+	const transactions = await client.getTransactions(myAddr, {
+		limit: 20,
+		archival: true,
+	})
 
-		const requiredNano = toNano(requiredAmountTon)
+	for (const tx of transactions) {
+		const inMsg = tx.inMessage
 
-		return {
-			isPaid: balanceNano >= requiredNano,
-			actualBalance: balanceTon,
-			requiredAmount: requiredAmountTon,
+		if (
+			inMsg?.info.type === "internal" &&
+			inMsg.info.src &&
+			Address.parse(inMsg.info.src.toString()).equals(senderAddr) &&
+			inMsg.info.value.coins >= minAmount
+		) {
+			return {
+				received: true,
+				hash: tx.hash().toString("hex"),
+			}
 		}
-	} catch (error) {
-		console.error("Error checking payment status:", error)
-		throw new Error("Failed to fetch wallet balance")
 	}
+
+	return { received: false, hash: null }
 }
 
 export async function releaseFundsToOwner(
-	escrowMnemonic: string[],
-	destinationAddress: string,
-	amountToReleaseTon: string
+	escrowPrivateKeyHex: string,
+	escrowPublicKeyHex: string,
+	ownerAddress: string,
+	amountToReleaseTon: number
 ): Promise<TransferResult> {
 	try {
-		const keyPair = await mnemonicToPrivateKey(escrowMnemonic)
+		const secretKey = Buffer.from(escrowPrivateKeyHex, "hex")
+		const publicKey = Buffer.from(escrowPublicKeyHex, "hex")
 
 		const wallet = WalletContractV5R1.create({
 			workchain: 0,
-			publicKey: keyPair.publicKey,
+			publicKey,
 		})
 
 		const contract = client.open(wallet)
-
 		const seqno = await contract.getSeqno()
 
 		await contract.sendTransfer({
 			seqno,
-			secretKey: keyPair.secretKey,
+			secretKey,
 			messages: [
 				internal({
-					to: Address.parse(destinationAddress),
+					to: Address.parse(ownerAddress),
 					value: toNano(amountToReleaseTon),
 					bounce: false,
 					body: "Ad Payment Release",
 				}),
 			],
-			sendMode: SendMode.PAY_GAS_SEPARATELY,
+			sendMode: SendMode.CARRY_ALL_REMAINING_BALANCE + SendMode.IGNORE_ERRORS,
 		})
 
 		return { success: true }

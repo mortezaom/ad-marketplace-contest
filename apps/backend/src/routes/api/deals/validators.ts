@@ -17,3 +17,7 @@ export const UpdateDealSchema = z
 		minPostDurationHours: z.number().int().positive().optional(),
 	})
 	.partial()
+
+export const GetWalletForDealSchema = z.object({
+	userWallet: z.string().min(10),
+})

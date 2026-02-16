@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, ne, sql } from "drizzle-orm"
 import type { Context } from "hono"
-import type { DealModel, UserModel } from "shared"
+import type { UserModel } from "shared"
 import { db } from "@/db"
 import {
 	adApplicationsTable,
@@ -9,11 +9,15 @@ import {
 	channelsTable,
 	dealCreativesTable,
 	dealsTable,
+	escrowWalletsTable,
+	paymentsTable,
 	usersTable,
 } from "@/db/schema"
+import { addPaymentConfirmation } from "@/queue"
 import { parseBody } from "@/utils/helpers"
 import { errorResponse, successResponse } from "@/utils/responses"
-import { UpdateDealSchema } from "./validators"
+import { createEscrowWallet } from "@/utils/ton"
+import { GetWalletForDealSchema } from "./validators"
 
 const paramInt = (c: Context, name: string) => Number.parseInt(c.req.param(name), 10)
 
@@ -251,51 +255,6 @@ export const handleGetDealById = async (c: Context) => {
 	}
 }
 
-export const handleUpdateDeal = async (c: Context) => {
-	const id = paramInt(c, "id")
-	const body = UpdateDealSchema.parse(await parseBody(c))
-	const user = c.get("user") as UserModel
-
-	try {
-		const deal = await getDealOrFail(id)
-		if (!deal) {
-			return c.json(errorResponse("Deal not found"), 404)
-		}
-
-		// Get user's channel IDs
-		const userChannelIds = await getUserChannelIds(user.tid)
-
-		// Check if user has access
-		const isAdvertiser = deal.advertiserId === user.tid
-		const isChannelOwner = userChannelIds.includes(deal.channelId)
-
-		if (!(isAdvertiser || isChannelOwner)) {
-			return c.json(errorResponse("Access denied"), 403)
-		}
-
-		const updateData: Partial<DealModel> = {
-			...body,
-			scheduledPostAt: body.scheduledPostAt ? new Date(body.scheduledPostAt) : null,
-			updatedAt: new Date(),
-		}
-
-		if (body.scheduledPostAt) {
-			updateData.scheduledPostAt = new Date(body.scheduledPostAt)
-		}
-
-		const [updated] = await db
-			.update(dealsTable)
-			.set(updateData)
-			.where(eq(dealsTable.id, id))
-			.returning()
-
-		return c.json(successResponse(updated))
-	} catch (error) {
-		console.error("Error updating deal:", error)
-		return c.json(errorResponse("Failed to update deal", error), 500)
-	}
-}
-
 export const handleGetChannelOwnerForDeal = async (c: Context) => {
 	const id = paramInt(c, "id")
 
@@ -344,5 +303,106 @@ export const handleGetChannelOwnerForDeal = async (c: Context) => {
 	} catch (error) {
 		console.error("Error getting channel owner:", error)
 		return c.json(errorResponse("Failed to get channel owner", error), 500)
+	}
+}
+
+export const handleSubmitTransactionStatus = async (c: Context) => {
+	const id = paramInt(c, "id")
+
+	try {
+		const deal = await getDealOrFail(id)
+		if (!deal) {
+			return c.json(errorResponse("Deal not found"), 404)
+		}
+
+		const [updated] = await db
+			.update(paymentsTable)
+			.set({
+				status: "confirming",
+			})
+			.where(eq(paymentsTable.dealId, deal.id))
+			.returning()
+
+		addPaymentConfirmation(deal.id, updated.id)
+
+		return c.json(successResponse({ message: "Status set, waiting for network confirmation!" }))
+	} catch (error) {
+		console.error(error)
+		return c.json(errorResponse("Failed to set status", error), 500)
+	}
+}
+
+export const handleGetPaymentWallet = async (c: Context) => {
+	const id = paramInt(c, "id")
+
+	const body = GetWalletForDealSchema.safeParse(await parseBody(c))
+	// const user = c.get("user") as UserModel
+
+	if (body.error) {
+		return c.json(errorResponse(body.error.message), 422)
+	}
+
+	try {
+		const deal = await getDealOrFail(id)
+		if (!deal) {
+			return c.json(errorResponse("Deal not found"), 404)
+		}
+
+		const toAddress = await createEscrowWallet()
+
+		const [walletCreated] = await db
+			.insert(escrowWalletsTable)
+			.values({
+				address: toAddress.address,
+				publicKey: toAddress.publicKey,
+				privateKey: toAddress.privateKey,
+			})
+			.returning()
+
+		const [created] = await db
+			.insert(paymentsTable)
+			.values({
+				dealId: deal.id,
+				amountInTon: deal.agreedPrice,
+				type: "escrow_hold",
+				fromAddress: body.data.userWallet,
+				toAddress: toAddress.address,
+				escrowWallet: walletCreated.id,
+			})
+			.onConflictDoUpdate({
+				target: paymentsTable.dealId,
+				set: {
+					fromAddress: body.data.userWallet,
+					toAddress: toAddress.address,
+					escrowWallet: walletCreated.id,
+				},
+			})
+			.returning()
+
+		return c.json(successResponse(created))
+	} catch (error) {
+		return c.json(errorResponse("Failed to get get payment wallet", error), 500)
+	}
+}
+
+export const handleGetDealPayment = async (c: Context) => {
+	const id = paramInt(c, "id")
+
+	try {
+		const deal = await getDealOrFail(id)
+		if (!deal) {
+			return c.json(errorResponse("Deal not found"), 404)
+		}
+
+		const [payment] = await db
+			.select()
+			.from(paymentsTable)
+			.where(eq(paymentsTable.dealId, deal.id))
+			.orderBy(desc(paymentsTable.createdAt))
+			.limit(1)
+
+		return c.json(successResponse(payment))
+	} catch (error) {
+		return c.json(errorResponse("Failed to get get payment wallet", error), 500)
 	}
 }
