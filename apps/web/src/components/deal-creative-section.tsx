@@ -112,19 +112,18 @@ export function DealCreativeSection({ deal, isAdvertiser, onUpdate }: DealCreati
 								onClick={goToCreative}
 								variant="outline"
 							>
-								<Edit className="mr-2 h-4 w-4" />
+								{creative.status !== "approved" && (<Edit className="mr-2 h-4 w-4" />)}
 								{creative.status === "approved" ? "View Creative" : "Revise Creative"}
 							</Button>
 						)}
-						{(isAdvertiser && creative?.status === "approved") && (
+						{isAdvertiser && creative?.status === "approved" && (
 							<Button
 								className="mt-4 w-full"
 								disabled={actionLoading}
 								onClick={goToCreative}
 								variant="outline"
 							>
-								<Edit className="mr-2 h-4 w-4" />
-								{creative.status === "approved" ? "View Creative" : "Revise Creative"}
+								View Creative
 							</Button>
 						)}
 					</div>

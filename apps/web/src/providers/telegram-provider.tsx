@@ -9,6 +9,7 @@ import {
 	useRawInitData,
 	useSignal,
 } from "@telegram-apps/sdk-react"
+import { TonConnectUIProvider } from "@tonconnect/ui-react"
 import { usePathname, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import { type PropsWithChildren, useEffect, useState } from "react"
@@ -107,5 +108,11 @@ export function TelegramProvider({ children }: PropsWithChildren) {
 		return <ErrorScreen message="Not a telegram environment!" />
 	}
 
-	return <TmaContent>{children}</TmaContent>
+	return (
+		<TmaContent>
+			<TonConnectUIProvider manifestUrl="https://mini-ad.mortezaom.dev/tonconnect-manifest.json">
+				{children}
+			</TonConnectUIProvider>
+		</TmaContent>
+	)
 }

@@ -21,6 +21,7 @@ export const usersTable = pgTable("users", {
 	last_name: varchar().default(""),
 	photo_url: varchar().default(""),
 	username: varchar(),
+	walletAddress: text(),
 	created_at: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 	updated_at: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 })

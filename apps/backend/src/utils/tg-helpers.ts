@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs"
 import { SqliteStorage, TelegramClient } from "@mtcute/bun"
+import { mainBot } from "@/bot"
 
 export const getTelegramCreds = () => ({
 	apiId: Bun.env.TG_API_ID,
@@ -37,4 +38,8 @@ export const makeBotClient = () => {
 export const withDelay = async <T>(fn: () => Promise<T>, delay = 1000): Promise<T> => {
 	await new Promise((resolve) => setTimeout(resolve, delay))
 	return await fn()
+}
+
+export const setMessageToConversation = async (message: string, peerId: number) => {
+	await mainBot.sendText(peerId, message)
 }

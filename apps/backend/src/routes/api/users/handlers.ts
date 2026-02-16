@@ -4,9 +4,10 @@ import type { Context } from "hono"
 import type { UserModel } from "shared"
 import { db } from "@/db"
 import { usersTable } from "@/db/schema"
+import { parseBody } from "@/utils/helpers"
 import { generateToken } from "@/utils/jwt"
 import { errorResponse, successResponse } from "@/utils/responses"
-import { AuthBodySchema } from "./validators"
+import { AuthBodySchema, SaveWalletSchema } from "./validators"
 
 const BOT_TOKEN = Bun.env.TG_BOT_TOKEN
 
@@ -75,6 +76,30 @@ export const handleGetUserInfo = async (c: Context) => {
 		const savedUser = await db.select().from(usersTable).where(eq(usersTable.id, user.id))
 
 		return c.json(successResponse(savedUser[0]))
+	} catch (err) {
+		return c.json(errorResponse(`${err}`), 401)
+	}
+}
+
+export const handleSaveUserWallet = async (c: Context) => {
+	try {
+		const user = c.get("user") as UserModel
+
+		const body = SaveWalletSchema.safeParse(await parseBody(c))
+
+		if (body.error) {
+			return c.json(errorResponse(body.error.message), 422)
+		}
+
+		await db
+			.update(usersTable)
+			.set({
+				walletAddress: body.data.walletAddress,
+			})
+			.where(eq(usersTable.id, user.id))
+			.execute()
+
+		return c.json(successResponse({ message: "saved!" }))
 	} catch (err) {
 		return c.json(errorResponse(`${err}`), 401)
 	}

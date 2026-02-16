@@ -1,3 +1,4 @@
+import { TonConnectButton } from "@tonconnect/ui-react"
 import { useState } from "react"
 import type { ChannelModel } from "shared"
 import { toast } from "sonner"
@@ -57,6 +58,20 @@ export function ChannelListingContent({ channel, onSaved }: ChannelListingProps)
 		}
 	}
 
+	const onWalletAddressReceived = async (walletAddress: string) => {
+		const res = await request<object>("users/save-wallet", {
+			method: "put",
+			json: {
+				walletAddress,
+			},
+		})
+		if (res.ok) {
+			toast.success("Wallet Address linked to your current User!")
+		} else {
+			toast.error(res.message)
+		}
+	}
+
 	return (
 		<div className="w-full">
 			<form>
@@ -100,6 +115,15 @@ export function ChannelListingContent({ channel, onSaved }: ChannelListingProps)
 								</InputGroup>
 							</Field>
 						</FieldGroup>
+					</FieldSet>
+					<FieldSeparator />
+					<FieldSet>
+						<FieldGroup>
+							<Field orientation="horizontal">
+								<TonConnectButton />
+							</Field>
+						</FieldGroup>
+						<FieldDescription>Your wallet address will be saved for payouts</FieldDescription>
 					</FieldSet>
 					<FieldSeparator />
 					<FieldSet>
