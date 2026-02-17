@@ -19,7 +19,17 @@ const app = new Hono()
 app.use(
 	cors({
 		origin: Bun.env.FRONTEND_ORIGIN,
-		allowHeaders: ["X-Custom-Header", "Upgrade-Insecure-Requests"],
+		allowHeaders: [
+			"X-CSRF-Token",
+			"X-Requested-With",
+			"Accept",
+			"Accept-Version",
+			"Content-Length",
+			"Content-MD5",
+			"Content-Type",
+			"Date",
+			"X-Api-Version",
+		],
 		allowMethods: ["POST", "GET", "OPTIONS", "PUT", "PATCH", "DELETE"],
 		exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
 		maxAge: 600,
