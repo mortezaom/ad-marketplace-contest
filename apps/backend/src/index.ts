@@ -8,8 +8,6 @@ import dash from "./routes/dash"
 
 parseENV()
 
-const allowedOrigins = new Set(["http://wsl.localhost:3333", Bun.env.FRONTEND_ORIGIN])
-
 startMainBot().catch((err) => {
 	console.error("Failed to start bot:", err)
 })
@@ -19,20 +17,7 @@ const app = new Hono()
 // global middleware
 app.use(logger())
 
-app.use(
-	"/api/*",
-	cors({
-		origin: (origin) => {
-			if (!origin) {
-				return undefined
-			}
-			return allowedOrigins.has(origin) ? origin : undefined
-		},
-		credentials: true,
-		allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-		allowHeaders: ["Content-Type", "Authorization"],
-	})
-)
+app.use(cors())
 // mount routes
 app.route("/api", api)
 app.route("/dash", dash)
