@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev2": "bun --env-file=../../.env next dev --port 3333",
+    "dev": "bun --env-file=../../.env next dev --port 3333",
     "build": "next build",
-    "dev": "bun --env-file=../../.env next start --port 3333"
+    "start": "next start"
   },
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.17.13",
