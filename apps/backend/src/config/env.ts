@@ -11,6 +11,7 @@ const envSchema = z.object({
 	TG_API_ID: z.coerce.number(),
 	TG_API_HASH: z.string(),
 	TONCENTER_API_KEY: z.string(),
+	FRONTEND_ORIGIN: z.string().default("http://localhost:3333"),
 })
 
 export function parseENV() {

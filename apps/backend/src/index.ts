@@ -8,7 +8,7 @@ import dash from "./routes/dash"
 
 parseENV()
 
-const allowedOrigins = new Set(["http://wsl.localhost:3333", "http://localhost:3333"])
+const allowedOrigins = new Set(["http://wsl.localhost:3333", Bun.env.FRONTEND_ORIGIN])
 
 startMainBot().catch((err) => {
 	console.error("Failed to start bot:", err)

@@ -6,7 +6,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "bun run  --elide-lines=30 --filter '*' dev",
+    "dev": "bun run --elide-lines=30 --filter '*' dev",
     "dev:web": "bun run --filter web dev",
     "dev:api": "bun run --filter backend dev",
     "build": "bun run --filter '*' build",
