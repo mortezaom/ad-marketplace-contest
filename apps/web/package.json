@@ -5,7 +5,7 @@
   "scripts": {
     "dev2": "bun --env-file=../../.env next dev --port 3333",
     "build": "next build",
-    "dev": "next --env-file=../../.env start --port 3333"
+    "dev": "bun --env-file=../../.env next start --port 3333"
   },
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.17.13",
