@@ -3,7 +3,6 @@ import type { NextConfig } from "next"
 const nextConfig: NextConfig = {
 	/* config options here */
 	reactCompiler: true,
-	output: "standalone",
 	transpilePackages: ["shared"],
 	reactStrictMode: false,
 	allowedDevOrigins: ["localhost:3000", "*.mortezaom.dev"],
