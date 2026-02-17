@@ -126,6 +126,5 @@ export async function request<D, E extends ApiExtra = ApiExtra>(
 }
 
 export const getChannelPhoto = (tgLink: string) => {
-	console.log(`${process.env.NEXT_PUBLIC_API_URL}channels/channel-photo/${tgLink.split("/").pop()}`)
 	return `${process.env.NEXT_PUBLIC_API_URL}channels/channel-photo/${tgLink.split("/").pop()}`
 }
