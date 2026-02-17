@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
 	output: "standalone",
 	transpilePackages: ["shared"],
 	reactStrictMode: false,
+	allowedDevOrigins: ["localhost:3000", "*.mortezaom.dev"],
 	async redirects() {
 		return [
 			{
