@@ -17,7 +17,11 @@ const app = new Hono()
 // global middleware
 app.use(logger())
 
-app.use(cors())
+app.use(
+	cors({
+		origin: "*",
+	})
+)
 // mount routes
 app.route("/api", api)
 app.route("/dash", dash)
