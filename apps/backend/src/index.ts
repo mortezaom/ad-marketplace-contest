@@ -18,7 +18,7 @@ const app = new Hono()
 
 app.use(
 	cors({
-		origin: "*",
+		origin: Bun.env.FRONTEND_ORIGIN,
 		allowHeaders: ["X-Custom-Header", "Upgrade-Insecure-Requests"],
 		allowMethods: ["POST", "GET", "OPTIONS", "PUT", "PATCH", "DELETE"],
 		exposeHeaders: ["Content-Length", "X-Kuma-Revision"],

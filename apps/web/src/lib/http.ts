@@ -32,7 +32,6 @@ function isApiShape(v: unknown): v is { status: "success" | "error" } {
 
 const http = ky.create({
 	prefixUrl: process.env.NEXT_PUBLIC_API_URL,
-	credentials: "include",
 	timeout: 200_000,
 	retry: { limit: 1 },
 	mode: "cors",
