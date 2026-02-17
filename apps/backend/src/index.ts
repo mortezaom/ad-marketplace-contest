@@ -20,7 +20,7 @@ app.use(
 	cors({
 		origin: "*",
 		allowHeaders: ["X-Custom-Header", "Upgrade-Insecure-Requests"],
-		allowMethods: ["POST", "GET", "OPTIONS"],
+		allowMethods: ["POST", "GET", "OPTIONS", "PUT", "PATCH", "DELETE"],
 		exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
 		maxAge: 600,
 		credentials: true,
