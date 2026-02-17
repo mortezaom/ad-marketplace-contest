@@ -35,6 +35,7 @@ const http = ky.create({
 	credentials: "include",
 	timeout: 200_000,
 	retry: { limit: 1 },
+	mode: "no-cors",
 	hooks: {
 		beforeRequest: [
 			(req) => {
