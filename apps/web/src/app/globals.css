@@ -193,9 +193,3 @@ body {
 		@apply bg-background text-foreground;
 	}
 }
-
-#devtools-indicator {
-	display: none !important;
-	user-select: none;
-	pointer-events: none;
-}
