@@ -1,6 +1,5 @@
 import { Hono } from "hono"
 import { cors } from "hono/cors"
-import { logger } from "hono/logger"
 import { startMainBot } from "./bot"
 import { parseENV } from "./config/env"
 import api from "./routes/api"
@@ -15,11 +14,16 @@ startMainBot().catch((err) => {
 const app = new Hono()
 
 // global middleware
-app.use(logger())
+// app.use(logger())
 
 app.use(
 	cors({
 		origin: "*",
+		allowHeaders: ["X-Custom-Header", "Upgrade-Insecure-Requests"],
+		allowMethods: ["POST", "GET", "OPTIONS"],
+		exposeHeaders: ["Content-Length", "X-Kuma-Revision"],
+		maxAge: 600,
+		credentials: true,
 	})
 )
 // mount routes
